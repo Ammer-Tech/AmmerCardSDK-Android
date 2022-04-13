@@ -1,12 +1,8 @@
-package tech.ammer.sdk.card;
+package tech.ammer.sdk.card
 
-public interface CardControllerListener {
-
-    public void onCardAttached();
-
-    public void onAppletSelected();
-
-    public void onAppletNotSelected(String message);
-
-    public void tagDiscoverTimeout();
+interface CardControllerListener {
+    fun onCardAttached()
+    fun onAppletSelected()
+    fun onAppletNotSelected(message: String?)
+    fun tagDiscoverTimeout()
 }

@@ -5,9 +5,11 @@ import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.interfaces.ECPublicKey
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec
 import org.bouncycastle.jce.spec.ECPublicKeySpec
 import org.bouncycastle.util.encoders.Hex
 import tech.ammer.sdk.card.apdu.*
+import timber.log.Timber
 import java.nio.ByteBuffer
 import java.security.KeyFactory
 import java.security.Signature
@@ -16,10 +18,16 @@ import kotlin.experimental.and
 
 
 class CardController(private val listener: CardControllerListener) : ReaderCallback {
-    private val AID = "70:6f:72:74:65:42:54:43"
-    private val aidBytes: ByteArray
+
+    companion object {
+        private const val AID = "70:6f:72:74:65:42:54:43"
+        private const val CONNECT_TIMEOUT = 25000
+        private var parameterSpec: ECNamedCurveParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
+    }
+
     private var isoDep: IsoDep? = null
-    var parameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
+
+    private val aidBytes: ByteArray
 
     init {
         val aidHex = AID.split(":").toTypedArray()
@@ -33,7 +41,7 @@ class CardController(private val listener: CardControllerListener) : ReaderCallb
         isoDep = IsoDep.get(tag)
         try {
             isoDep?.connect()
-            isoDep?.timeout = 25000
+            isoDep?.timeout = CONNECT_TIMEOUT
             checkCardState()
             listener.onAppletSelected()
         } catch (e: Exception) {
@@ -58,13 +66,13 @@ class CardController(private val listener: CardControllerListener) : ReaderCallb
 
     private fun publicKeyObj(): ECPublicKey {
         val w = publicKey()
-//        logger("GET_PUB_KEY: ${w.toList()}")
+        Timber.d("GET_PUB_KEY: ${w.toList()}")
 
         val cardKeySpec = ECPublicKeySpec(parameterSpec.curve.decodePoint(w), parameterSpec)
         val cardKey = KeyFactory.getInstance("EC", "BC").generatePublic(cardKeySpec) as ECPublicKey
 
         val fromCard = Hex.toHexString(cardKey.encoded)
-//        logger("getPublicKeyObj: $fromCard")
+        Timber.d("getPublicKeyObj: $fromCard")
 
         return cardKey
     }
@@ -74,10 +82,9 @@ class CardController(private val listener: CardControllerListener) : ReaderCallb
             val start = System.currentTimeMillis()
             unlock(pin)
 
-            val pubKey = ECController.getInstance()
-                .getPublicKeyString(publicKey())
+            val pubKey = ECController.instance?.getPublicKeyString(publicKey())
 
-//            logger(">>> getPublicKeyString: " + (System.currentTimeMillis() - start))
+            Timber.d(">>> getPublicKeyString: " + (System.currentTimeMillis() - start))
             return pubKey
         } catch (e: Exception) {
             e.printStackTrace()
@@ -91,7 +98,7 @@ class CardController(private val listener: CardControllerListener) : ReaderCallb
 
         signature.initVerify(publicKeyObj())
         signature.update(Hex.decode(data))
-//        logger("VERIFY: " + signature.verify(Hex.decode(signedData)))
+        Timber.d("VERIFY: " + signature.verify(Hex.decode(signedData)))
     }
 
     fun signData(data: String, pin: String): String? {
@@ -103,8 +110,8 @@ class CardController(private val listener: CardControllerListener) : ReaderCallb
                 .setPIN(pinBytes)
                 .setPayload(Hex.decode(data))
 
-//            logger("Sign Data1 $data")
-//            logger("Sign Data2 " + apduData.getBytes().toList().toString())
+            Timber.d("Sign Data1 $data")
+            Timber.d("Sign Data2 " + apduData.getBytes().toList().toString())
 
             val fullInfoSign = signData(apduData)
             val _sign = fullInfoSign.takeLast(fullInfoSign.size - 2)
@@ -188,7 +195,7 @@ class CardController(private val listener: CardControllerListener) : ReaderCallb
             .setData(pin)
             .build()
 
-//        logger(command.toList().toString())
+        Timber.d(command.toList().toString())
         processCommand("Unlock", command)
     }
 
