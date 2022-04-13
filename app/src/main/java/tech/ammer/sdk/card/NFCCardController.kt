@@ -30,6 +30,8 @@ class NFCCardController(private val listener: CardControllerListener) :
     }
 
     private var isoDep: IsoDep? = null
+    private var nfc: NfcAdapter? = null
+    private var activity: Activity? = null
 
     private val aidBytes: ByteArray
 
@@ -77,10 +79,21 @@ class NFCCardController(private val listener: CardControllerListener) :
         return cardKey
     }
 
+    // TODO remove saving reference to activity for `listenForCard` and `stopListening` (find better way to do it)
     override fun open(activity: Activity) {
-        val nfs = NfcAdapter.getDefaultAdapter(activity)
-        if(!nfs.isEnabled) throw Exception("NFC is not enabled")
-        nfs.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_A, null)
+        this.activity = activity
+
+        nfc = NfcAdapter.getDefaultAdapter(activity)
+        if (nfc == null) throw Exception("NFC module not found")
+        if(!nfc!!.isEnabled) throw Exception("NFC not enabled")
+    }
+
+    override fun listenForCard() {
+        nfc?.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_A, null)
+    }
+
+    override fun stopListening() {
+        nfc?.disableReaderMode(activity)
     }
 
     override fun getPublicKeyString(pin: String): String? {

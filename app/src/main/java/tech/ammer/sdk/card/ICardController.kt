@@ -8,6 +8,10 @@ interface ICardController {
     @Throws(Exception::class)
     fun open(activity: Activity)
 
+    fun listenForCard()
+
+    fun stopListening()
+
     fun getPublicKeyString(pin: String): String?
 
     fun signData(data: String, pin: String): String?
