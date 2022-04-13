@@ -1,6 +1,6 @@
 package tech.ammer.sdk.card.apdu
 
-interface ISO7816 {
+internal interface ISO7816 {
     companion object {
         const val SW_NO_ERROR: Short = -28672
         const val SW_BYTES_REMAINING_00: Short = 24832
@@ -41,7 +41,7 @@ interface ISO7816 {
     }
 }
 
-object State {
+internal object State {
     const val NOT_INITED: Byte = 2
     const val INITED: Byte = 4
     const val ACTIVATED_LOCKED: Byte = 8

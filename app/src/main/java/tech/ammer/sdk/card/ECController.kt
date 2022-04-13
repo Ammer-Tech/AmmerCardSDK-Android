@@ -14,7 +14,7 @@ import java.security.KeyFactory
 import java.security.Security
 import java.util.*
 
-class ECController private constructor() {
+internal class ECController private constructor() {
     private val parameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
     private val curve = SecP256K1Curve()
     fun getPublicKeyString(w: ByteArray?): String? {

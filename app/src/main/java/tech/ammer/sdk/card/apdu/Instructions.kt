@@ -1,6 +1,6 @@
 package tech.ammer.sdk.card.apdu
 
-object Instructions {
+internal object Instructions {
     const val INS_GET_STATE: Byte = 0x01
     const val INS_INIT: Byte = 0x02
     const val INS_GET_CARD_GUID: Byte = 0x03
@@ -21,7 +21,7 @@ object Instructions {
     const val INS_SIGN_PROCESSING_DATA: Byte = 0x12
 }
 
-object Tags {
+internal object Tags {
     const val STATE: Byte = 0x01
     const val CARD_GUID: Byte = 0x02
     const val CARD_ISSUER: Byte = 0x03
