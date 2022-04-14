@@ -6,3 +6,10 @@ interface CardControllerListener {
     fun onAppletNotSelected(message: String)
     fun tagDiscoverTimeout()
 }
+
+interface CardControllerListenerV2 {
+    fun onErrorAttach(errorCode: Int)
+    fun onStartListening() {}
+    fun onStopListening() {}
+    fun onCardAttached(isActivated: Boolean, pubKey: String, cardController: CardControllerV2)
+}

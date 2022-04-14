@@ -20,7 +20,7 @@ import java.util.*
 import kotlin.experimental.and
 
 
-class NFCCardController(private val listener: CardControllerListener) :
+class NFCCardController(private val listener: CardControllerListener, private val listenerV2: CardControllerListenerV2) :
     ReaderCallback,
     ICardController {
 
@@ -48,16 +48,11 @@ class NFCCardController(private val listener: CardControllerListener) :
         try {
             isoDep?.connect()
             isoDep?.timeout = CONNECT_TIMEOUT
-            checkCardState()
             listener.onAppletSelected()
         } catch (e: Exception) {
             e.printStackTrace()
-            listener.onAppletNotSelected(e.message?: "") //TODO FIX ME, add codes
+            listener.onAppletNotSelected(e.message ?: "") //TODO FIX ME, add codes
         }
-    }
-
-    private fun checkCardState() {
-        //TODO what exactly this method used to?
     }
 
     private fun pinGetBytes(pin: String): ByteArray {
@@ -79,20 +74,25 @@ class NFCCardController(private val listener: CardControllerListener) :
         return cardKey
     }
 
-    // TODO remove saving reference to activity for `listenForCard` and `stopListening` (find better way to do it)
-    override fun open(activity: Activity) {
-        Log.d("open activity is ", activity.toString())
+    fun open(activity: Activity) {
         this.activity = activity
-
         nfc = NfcAdapter.getDefaultAdapter(activity)
-        if (nfc == null) throw Exception("NFC module not found")
-        if(!nfc!!.isEnabled) throw Exception("NFC not enabled")
+        nfc?.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_A, null)
+        if (nfc == null) {
+            listenerV2.onErrorAttach(ExceptionCode.NFC_NOT_FOUND)
+            return
+        }
+        if (nfc?.isEnabled == false) {
+            listenerV2.onErrorAttach(ExceptionCode.NFC_DISABLE)
+            return
+        }
+
         Log.d("NfcAdapter looks ok ", nfc.toString())
+        listenerV2.onStartListening()
     }
 
-    override fun listenForCard() {
-        Log.d("listenForCard NfcAdapter is ", nfc.toString())
-        nfc?.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_A, null)
+    override fun startListening() {
+        open(activity!!)
     }
 
     override fun stopListening() {
@@ -100,7 +100,7 @@ class NFCCardController(private val listener: CardControllerListener) :
         nfc?.disableReaderMode(activity)
     }
 
-    override fun close() {
+    fun close() {
         Log.d("close NfcAdapter is ", nfc.toString())
         activity = null
     }
@@ -175,7 +175,7 @@ class NFCCardController(private val listener: CardControllerListener) :
         return true // TODO FIX ME
     }
 
-    
+
     override fun select() {
         val command = APDUBuilder
             .init()
@@ -188,16 +188,16 @@ class NFCCardController(private val listener: CardControllerListener) :
         processCommand("Select", command)
     }
 
-    override fun  isNotActivate(): Boolean {
-            val command = APDUBuilder
-                .init()
-                .setINS(Instructions.INS_GET_STATE)
-                .build()
-            val status = processCommand("isNotActivated:", command)
-            return status[2] == State.INITED
-        }
+    override fun isNotActivate(): Boolean {
+        val command = APDUBuilder
+            .init()
+            .setINS(Instructions.INS_GET_STATE)
+            .build()
+        val status = processCommand("isNotActivated:", command)
+        return status[2] == State.INITED
+    }
 
-    
+
     override fun signDataPos(payload: String, pin: String): String {
         Log.d("signDataPos", "payload $payload pin $pin")
 
@@ -240,11 +240,11 @@ class NFCCardController(private val listener: CardControllerListener) :
             .setData(pin)
             .build()
 
-        Log.d("unlock",command.toList().toString())
+        Log.d("unlock", command.toList().toString())
         processCommand("Unlock", command)
     }
 
-    
+
     private fun unlock(pin: String) {
         val pinBytes = pinGetBytes(pin)
         unlock(byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes))
