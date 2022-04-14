@@ -1,5 +1,6 @@
 package tech.ammer.sdk.card
 
+import android.util.Log
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.interfaces.ECPublicKey
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec
@@ -8,7 +9,6 @@ import org.bouncycastle.util.encoders.Hex
 import tech.ammer.sdk.card.ECController
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.jce.spec.ECPublicKeySpec
-import timber.log.Timber
 import java.lang.Exception
 import java.security.KeyFactory
 import java.security.Security
@@ -56,10 +56,10 @@ internal class ECController private constructor() {
             val cardKey =
                 KeyFactory.getInstance("EC", "BC").generatePublic(cardKeySpec) as ECPublicKey
             val fromCard = Hex.toHexString(cardKey.encoded)
-            Timber.d(fromCard)
+            Log.d("INIT", fromCard)
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        Timber.d("init " + (Calendar.getInstance().time.time - start) + "ms")
+        Log.d("init ", (Calendar.getInstance().time.time - start).toString() + "ms")
     }
 }

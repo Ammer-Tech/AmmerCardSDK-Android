@@ -5,24 +5,25 @@ import tech.ammer.sdk.card.apdu.APDUData
 
 interface ICardController {
 
-    @Throws(Exception::class)
     fun open(activity: Activity)
 
     fun listenForCard()
 
     fun stopListening()
 
+    fun close()
+
     fun getPublicKeyString(pin: String): String?
 
-    fun signData(data: String, pin: String): String?
+    fun signDataWallet(payload: String, pin: String): String?
 
-    @Throws(Exception::class)
+    fun signDataPos(payload: String, pin: String): String?
+
     fun select()
 
     fun isNotActivate(): Boolean
 
-    @Throws(Exception::class)
-    fun signData(payload: ByteArray, pin: ByteArray): ByteArray
+    fun activate(pin: String): Boolean
 
     companion object {
         const val AID = "70:6f:72:74:65:42:54:43"
