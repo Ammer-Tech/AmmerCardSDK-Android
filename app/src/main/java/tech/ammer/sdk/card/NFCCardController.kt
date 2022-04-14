@@ -29,6 +29,7 @@ class NFCCardController(private val listener: CardControllerListener) :
         private var parameterSpec: ECNamedCurveParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
     }
 
+    private var isUnlock: Boolean = false
     private var isoDep: IsoDep? = null
     private var nfc: NfcAdapter? = null
     private var activity: Activity? = null
@@ -48,16 +49,11 @@ class NFCCardController(private val listener: CardControllerListener) :
         try {
             isoDep?.connect()
             isoDep?.timeout = CONNECT_TIMEOUT
-            checkCardState()
             listener.onAppletSelected()
         } catch (e: Exception) {
             e.printStackTrace()
-            listener.onAppletNotSelected(e.message?: "") //TODO FIX ME, add codes
+            listener.onAppletNotSelected(e.message ?: "") //TODO FIX ME, add codes
         }
-    }
-
-    private fun checkCardState() {
-        //TODO what exactly this method used to?
     }
 
     private fun pinGetBytes(pin: String): ByteArray {
@@ -86,11 +82,11 @@ class NFCCardController(private val listener: CardControllerListener) :
 
         nfc = NfcAdapter.getDefaultAdapter(activity)
         if (nfc == null) throw Exception("NFC module not found")
-        if(!nfc!!.isEnabled) throw Exception("NFC not enabled")
+        if (!nfc!!.isEnabled) throw Exception("NFC not enabled")
         Log.d("NfcAdapter looks ok ", nfc.toString())
     }
 
-    override fun listenForCard() {
+    override fun startListening() {
         Log.d("listenForCard NfcAdapter is ", nfc.toString())
         nfc?.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_A, null)
     }
@@ -103,6 +99,29 @@ class NFCCardController(private val listener: CardControllerListener) :
     override fun close() {
         Log.d("close NfcAdapter is ", nfc.toString())
         activity = null
+        isUnlock = false
+    }
+
+    override fun getCardUUID(pin: String): UUID {
+        unlock(pin)
+
+        val command: ByteArray = APDUBuilder
+            .init()
+            .setINS(Instructions.INS_GET_CARD_GUID)
+            .build()
+
+        val uuidCardBytes = processCommand("GetMeta", command)
+        val buffer = ByteBuffer.allocate(8)
+        buffer.put(uuidCardBytes, 2, 8)
+        buffer.flip()
+
+        val mostSigBits = buffer.long
+        buffer.clear()
+        buffer.put(uuidCardBytes, 10, 8)
+        buffer.flip()
+
+        val leastSigBits = buffer.long
+        return UUID(mostSigBits, leastSigBits)
     }
 
     override fun getPublicKeyString(pin: String): String? {
@@ -131,13 +150,13 @@ class NFCCardController(private val listener: CardControllerListener) :
 
     // TODO add card answer processing like if it [0x90,0x00] this is good and all other is error
     private fun processCommand(commandName: String, command: ByteArray): ByteArray {
-        Log.d("processCommand ", commandName)
+        Log.d("processCommand($commandName)", command.toList().toString())
         val result = isoDep!!.transceive(command)
         val resultLength = result.size
         val sw: Short = ByteBuffer.wrap(byteArrayOf(result[resultLength - 2], result[resultLength - 1])).short and 0xFFFF.toShort()
 
         if (sw != ISO7816.SW_NO_ERROR and 0xFFFF.toShort()) {
-            throw Exception(sw.toString())
+            throw Exception("" + sw)
         }
         return if (resultLength > 2) Arrays.copyOf(result, resultLength - 2) else byteArrayOf()
     }
@@ -158,6 +177,7 @@ class NFCCardController(private val listener: CardControllerListener) :
             .setINS(Instructions.INS_LOCK)
             .build()
         processCommand("Lock", command)
+        isUnlock = false
     }
 
     override fun activate(pin: String): Boolean {
@@ -175,7 +195,7 @@ class NFCCardController(private val listener: CardControllerListener) :
         return true // TODO FIX ME
     }
 
-    
+
     override fun select() {
         val command = APDUBuilder
             .init()
@@ -188,44 +208,34 @@ class NFCCardController(private val listener: CardControllerListener) :
         processCommand("Select", command)
     }
 
-    override fun  isNotActivate(): Boolean {
-            val command = APDUBuilder
-                .init()
-                .setINS(Instructions.INS_GET_STATE)
-                .build()
-            val status = processCommand("isNotActivated:", command)
-            return status[2] == State.INITED
-        }
-
-    
-    override fun signDataPos(payload: String, pin: String): String {
-        Log.d("signDataPos", "payload $payload pin $pin")
-
-        val data = APDUData(Hex.decode(payload), pinGetBytes(pin))
+    override fun isNotActivate(): Boolean {
         val command = APDUBuilder
             .init()
-            .setINS(Instructions.INS_SIGN_DATA)
-            .setData(data)
+            .setINS(Instructions.INS_GET_STATE)
             .build()
-        return Hex.toHexString(processCommand("SignData", command))
+        val status = processCommand("isNotActivated:", command)
+        return status[2] == State.INITED
     }
 
-    override fun signDataWallet(payload: String, pin: String): String? {
+    override fun signData(payload: String, pin: String): String? {
         Log.d("signDataWallet", "payload $payload pin $pin")
         try {
             val pinBytes = pinGetBytes(pin)
             //unlock(pinBytes);
-            val apduData = APDUData(pinBytes, Hex.decode(payload))
+            val apduData = APDUData(Hex.decode(payload), pinBytes)
 
-            Log.d("Sign Data1 ", payload)
-            Log.d("Sign Data2 ", apduData.bytes.toList().toString())
+            val apduCommand = APDUBuilder
+                .init()
+                .setINS(Instructions.INS_SIGN_DATA)
+                .setData(apduData)
+                .build()
 
-            val fullInfoSign = signDataPos(Hex.toHexString(apduData.payload), Hex.toHexString(apduData.pin))
-            val sign = fullInfoSign.takeLast(fullInfoSign.length - 4)
-            val signedDataHex = Hex.toHexString(sign.toByteArray())
-            if (verify(payload, signedDataHex)) throw java.lang.Exception("Data was not verified payload $payload signedDataHex $signedDataHex")
+            val fullSignResponse = processCommand("SignData", apduCommand)
+            val mySign = fullSignResponse.takeLast(fullSignResponse.size - 2)
+            val hexSign = Hex.toHexString(mySign.toByteArray())
+            if (!verify(payload, hexSign)) throw java.lang.Exception("Data was not verified payload $payload signedDataHex $hexSign")
             lock()
-            return signedDataHex
+            return hexSign
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -240,12 +250,24 @@ class NFCCardController(private val listener: CardControllerListener) :
             .setData(pin)
             .build()
 
-        Log.d("unlock",command.toList().toString())
         processCommand("Unlock", command)
+        isUnlock = true
     }
 
-    
+    override fun changePin(oldPin: String, newPin: String) {
+        val data = byteArrayOf(Tags.CARD_PIN, oldPin.length.toByte(), *pinGetBytes(oldPin), Tags.CARD_PIN, newPin.length.toByte(), *pinGetBytes(newPin))
+
+        val command = APDUBuilder
+            .init()
+            .setINS(Instructions.INS_CHANGE_PIN)
+            .setData(data)
+            .build()
+
+        processCommand("ChangePin", command)
+    }
+
     private fun unlock(pin: String) {
+        if (isUnlock) return
         val pinBytes = pinGetBytes(pin)
         unlock(byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes))
     }

@@ -17,6 +17,7 @@ import java.util.*
 internal class ECController private constructor() {
     private val parameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
     private val curve = SecP256K1Curve()
+
     fun getPublicKeyString(w: ByteArray?): String? {
         try {
             val cardKeySpec = ECPublicKeySpec(parameterSpec.curve.decodePoint(w), parameterSpec)
