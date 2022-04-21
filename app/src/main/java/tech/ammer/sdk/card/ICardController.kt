@@ -1,7 +1,6 @@
 package tech.ammer.sdk.card
 
 import android.app.Activity
-import tech.ammer.sdk.card.apdu.APDUData
 import java.util.*
 
 interface ICardController {
@@ -13,12 +12,13 @@ interface ICardController {
 
     fun stopListening()
 
-
     fun getPublicKeyString(pin: String): String?
 
     /**
-     * @param pin max 5 symbols
+     *  Can be called only once
      */
+    fun getPrivateKeyString(pin: String): String?
+
     fun getCardUUID(pin: String): UUID?
 
     fun signData(payload: String, pin: String): String?
@@ -29,7 +29,7 @@ interface ICardController {
 
     fun activate(pin: String): Boolean
 
-    fun changePin(oldPin:String,newPin:String)
+    fun changePin(oldPin: String, newPin: String)
 
     companion object {
         const val AID = "70:6f:72:74:65:42:54:43"

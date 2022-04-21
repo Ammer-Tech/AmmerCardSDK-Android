@@ -19,7 +19,6 @@ import java.security.Signature
 import java.util.*
 import kotlin.experimental.and
 
-
 class NFCCardController(private val listener: CardControllerListener) :
     ReaderCallback,
     ICardController {
@@ -126,12 +125,8 @@ class NFCCardController(private val listener: CardControllerListener) :
 
     override fun getPublicKeyString(pin: String): String? {
         try {
-            val start = System.currentTimeMillis()
             unlock(pin)
-
             val pubKey = ECController.instance?.getPublicKeyString(publicKey())
-
-            Log.d("getPublicKeyString ", (System.currentTimeMillis() - start).toString())
             return pubKey
         } catch (e: Exception) {
             e.printStackTrace()
@@ -139,19 +134,44 @@ class NFCCardController(private val listener: CardControllerListener) :
         return null
     }
 
+    override fun getPrivateKeyString(pin: String): String? {
+        kotlin.runCatching {
+            unlock(pin)
+            val privKey = privateKey(pin)
+            blockGetPrivateKey(pin)
+            return ECController.instance?.getPrivateKeyString(privKey)
+        }.onFailure {
+            it.printStackTrace()
+        }
+
+        return null
+    }
+
+    private fun blockGetPrivateKey(pin: String) {
+        val pinBytes = pinGetBytes(pin)
+        val _pin = byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes)
+
+        val command = APDUBuilder
+            .init()
+            .setINS(Instructions.INS_DISABLE_PRIVATE_KEY_EXPORT)
+            .setData(_pin)
+            .build()
+
+        processCommand("Block get private key", command)
+    }
+
     private fun verify(data: String, signedData: String): Boolean {
         val signature = Signature.getInstance("NONEwithECDSA")
-
         signature.initVerify(publicKeyObj())
         signature.update(Hex.decode(data))
         return signature.verify(Hex.decode(signedData))
     }
 
-
     // TODO add card answer processing like if it [0x90,0x00] this is good and all other is error
     private fun processCommand(commandName: String, command: ByteArray): ByteArray {
-        Log.d("processCommand($commandName)", command.toList().toString())
+        Log.d("processCommand($commandName)(lock:${!isUnlock})", command.toList().toString())
         val result = isoDep!!.transceive(command)
+
         val resultLength = result.size
         val sw: Short = ByteBuffer.wrap(byteArrayOf(result[resultLength - 2], result[resultLength - 1])).short and 0xFFFF.toShort()
 
@@ -171,9 +191,26 @@ class NFCCardController(private val listener: CardControllerListener) :
         return cmd.takeLast(cmd.size - 2).toByteArray()
     }
 
+    private fun privateKey(pin: String): ByteArray {
+        val pinBytes = pinGetBytes(pin)
+        val _pin = byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes)
+
+        val command = APDUBuilder
+            .init()
+            .setINS(Instructions.INS_EXPORT_PRIVATE_KEY)
+            .setData(_pin)
+            .build()
+
+        val cmd = processCommand("GetPrivatKey", command)
+
+        return cmd.takeLast(cmd.size - 2).toByteArray()
+    }
+
     // TODO check when it needed
     private fun lock() {
-        val command = APDUBuilder.init().setCLA(ISO7816.CLA_ISO7816)
+        val command = APDUBuilder
+            .init()
+            .setCLA(ISO7816.CLA_ISO7816)
             .setINS(Instructions.INS_LOCK)
             .build()
         processCommand("Lock", command)
@@ -268,6 +305,7 @@ class NFCCardController(private val listener: CardControllerListener) :
 
     private fun unlock(pin: String) {
         if (isUnlock) return
+
         val pinBytes = pinGetBytes(pin)
         unlock(byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes))
     }

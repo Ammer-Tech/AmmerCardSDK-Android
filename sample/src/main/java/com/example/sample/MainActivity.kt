@@ -3,7 +3,6 @@ package com.example.sample
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
-import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.button.MaterialButton
@@ -14,6 +13,7 @@ import tech.ammer.sdk.card.ReaderMode
 
 class MainActivity : Activity(), CardControllerListener {
     private var cardController: ICardController? = null
+    private val pin = "12345"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,13 +23,13 @@ class MainActivity : Activity(), CardControllerListener {
         cardController?.open(this)
 
         findViewById<MaterialButton>(R.id.start).setOnClickListener {
-            findViewById<TextView>(R.id.title).text = "started"
+            findViewById<TextView>(R.id.title).text = "Started"
             cardController?.startListening()
         }
 
         findViewById<MaterialButton>(R.id.stop).setOnClickListener {
             cardController?.stopListening()
-            findViewById<TextView>(R.id.title).text = "stoped"
+            findViewById<TextView>(R.id.title).text = "Stopped"
         }
     }
 
@@ -40,27 +40,36 @@ class MainActivity : Activity(), CardControllerListener {
     override fun onAppletSelected() {
         cardController?.select() // Required!!
 
+        runOnUiThread {
+            findViewById<TextView>(R.id.title).text = "Processing.."
+        }
+
         if (cardController?.isNotActivate() == true) {
             Toast.makeText(this, "Activate the card", Toast.LENGTH_SHORT).show()
 //            activate("12345")
             return
         }
 
-        val pubKey = cardController?.getPublicKeyString("12345")
+        val privateKey = cardController?.getPrivateKeyString(pin)
+        val pubKey = cardController?.getPublicKeyString(pin)
+
         if (pubKey == null) {
             Toast.makeText(this, "Wrong pin", Toast.LENGTH_SHORT).show()
         }
-        val uuid = cardController?.getCardUUID("12345")
-        val sign = cardController?.signData("bce6d58f7da6c3cd7239cbf5fcc0e323302ff072b20ecf59c501752c0e98906a", "12345")
+
+        val uuid = cardController?.getCardUUID(pin)
+        val sign = cardController?.signData("bce6d58f7da6c3cd7239cbf5fcc0e323302ff072b20ecf59c501752c0e98906a", pin)
 
         runOnUiThread {
-            findViewById<TextView>(R.id.title).text = "uuidCard - $uuid\n\npubKey - $pubKey\n\nsign - $sign"
+            findViewById<TextView>(R.id.title).text = "uuidCard - $uuid\n\npubKey - $pubKey\n\nprivate key - $privateKey\n\nsign - $sign"
         }
     }
 
 
+
+    @SuppressLint("SetTextI18n")
     override fun onAppletNotSelected(message: String) {
-        Toast.makeText(this, "Error:$message", Toast.LENGTH_SHORT).show()
+        findViewById<TextView>(R.id.title).text = "Error: $message"
     }
 
     override fun tagDiscoverTimeout() {
