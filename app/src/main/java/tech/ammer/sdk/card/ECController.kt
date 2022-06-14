@@ -65,8 +65,7 @@ internal class ECController private constructor() {
             )
             val wPoint = curve.decodePoint(w)
             val cardKeySpec = ECPublicKeySpec(parameterSpec.curve.decodePoint(w), parameterSpec)
-            val cardKey =
-                KeyFactory.getInstance("EC", "BC").generatePublic(cardKeySpec) as ECPublicKey
+            val cardKey = KeyFactory.getInstance("EC", "BC").generatePublic(cardKeySpec) as ECPublicKey
             val fromCard = Hex.toHexString(cardKey.encoded)
             Log.d("INIT", fromCard)
         } catch (e: Exception) {

@@ -11,8 +11,9 @@ import org.bouncycastle.jce.interfaces.ECPublicKey
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec
 import org.bouncycastle.jce.spec.ECPublicKeySpec
 import org.bouncycastle.util.encoders.Hex
-import tech.ammer.sdk.card.ICardController.Companion.AID
+import tech.ammer.sdk.card.ICardController.Companion.AIDs
 import tech.ammer.sdk.card.apdu.*
+import tech.ammer.sdk.card.apdu.ISO7816.Companion.SW_FILE_NOT_FOUND
 import java.nio.ByteBuffer
 import java.security.KeyFactory
 import java.security.Signature
@@ -33,13 +34,16 @@ class NFCCardController(private val listener: CardControllerListener) :
     private var nfc: NfcAdapter? = null
     private var activity: Activity? = null
 
-    private val aidBytes: ByteArray
+    private val aidsByte = arrayListOf<ByteArray>()
 
     init {
-        val aidHex = AID.split(":").toTypedArray()
-        aidBytes = ByteArray(aidHex.size)
-        for (i in aidHex.indices) {
-            aidBytes[i] = aidHex[i].toByte(16)
+        AIDs.forEachIndexed { index, it ->
+            val aidHex = it.split(":").toTypedArray()
+            aidsByte.add(index, ByteArray(aidHex.size))
+            for (i in aidsByte[index].indices) {
+                val ii = aidHex[i].toInt(16)
+                aidsByte[index][i] = (if (ii > 127) ii - 256 else ii).toByte()
+            }
         }
     }
 
@@ -234,15 +238,27 @@ class NFCCardController(private val listener: CardControllerListener) :
 
 
     override fun select() {
-        val command = APDUBuilder
-            .init()
-            .setCLA(ISO7816.CLA_ISO7816)
-            .setINS(ISO7816.INS_SELECT)
-            .setP1(0x04.toByte())
-            .setP2(0x00.toByte())
-            .setData(aidBytes)
-            .build()
-        processCommand("Select", command)
+        aidsByte.forEachIndexed { index, aid ->
+            try {
+                val command = APDUBuilder
+                    .init()
+                    .setCLA(ISO7816.CLA_ISO7816)
+                    .setINS(ISO7816.INS_SELECT)
+                    .setP1(0x04.toByte())
+                    .setP2(0x00.toByte())
+                    .setData(aid)
+                    .build()
+
+                processCommand("Select", command)
+//                return AIDs.get(index)
+                return
+            } catch (e: Throwable) {
+                if (e.message != SW_FILE_NOT_FOUND.toString() || aidsByte.size - 1 == index) {
+                    throw e
+                }
+            }
+        }
+
     }
 
     override fun isNotActivate(): Boolean {
@@ -251,6 +267,7 @@ class NFCCardController(private val listener: CardControllerListener) :
             .setINS(Instructions.INS_GET_STATE)
             .build()
         val status = processCommand("isNotActivated:", command)
+
         return status[2] == State.INITED
     }
 

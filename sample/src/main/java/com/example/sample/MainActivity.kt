@@ -13,7 +13,7 @@ import tech.ammer.sdk.card.ReaderMode
 
 class MainActivity : Activity(), CardControllerListener {
     private var cardController: ICardController? = null
-    private val pin = "12345"
+    private val pin = "123456"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +44,10 @@ class MainActivity : Activity(), CardControllerListener {
             findViewById<TextView>(R.id.title).text = "Processing.."
         }
 
+        runOnUiThread {
+            findViewById<TextView>(R.id.title).text = "isActivate: ${!cardController?.isNotActivate()!!}\n"
+        }
+
         if (cardController?.isNotActivate() == true) {
             Toast.makeText(this, "Activate the card", Toast.LENGTH_SHORT).show()
 //            activate("12345")
@@ -61,10 +65,9 @@ class MainActivity : Activity(), CardControllerListener {
         val sign = cardController?.signData("bce6d58f7da6c3cd7239cbf5fcc0e323302ff072b20ecf59c501752c0e98906a", pin)
 
         runOnUiThread {
-            findViewById<TextView>(R.id.title).text = "uuidCard - $uuid\n\npubKey - $pubKey\n\nprivate key - $privateKey\n\nsign - $sign"
+            findViewById<TextView>(R.id.title).append("\n uuidCard - $uuid\n\npubKey - $pubKey\n\nprivate key - $privateKey\n\nsign - $sign")
         }
     }
-
 
 
     @SuppressLint("SetTextI18n")
@@ -74,6 +77,8 @@ class MainActivity : Activity(), CardControllerListener {
 
     override fun tagDiscoverTimeout() {
     }
+
+
 
     private fun activate(pin: String) {
         cardController?.activate(pin)
@@ -85,8 +90,7 @@ class MainActivity : Activity(), CardControllerListener {
         }
     }
 
-
     private fun changePin() {
-        cardController?.changePin("12345", "11111")
+        cardController?.changePin(pin, "11111")
     }
 }

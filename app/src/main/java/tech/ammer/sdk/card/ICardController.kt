@@ -14,9 +14,7 @@ interface ICardController {
 
     fun getPublicKeyString(pin: String): String?
 
-    /**
-     *  Can be called only once
-     */
+    @SuppressWarnings("Can be called only once")
     fun getPrivateKeyString(pin: String): String?
 
     fun getCardUUID(pin: String): UUID?
@@ -32,6 +30,6 @@ interface ICardController {
     fun changePin(oldPin: String, newPin: String)
 
     companion object {
-        const val AID = "70:6f:72:74:65:42:54:43"
+        val AIDs = arrayListOf("A0:00:00:08:82:00:01", "63:98:96:00:FF:00:01", "70:6f:72:74:65:42:54:43")
     }
 }

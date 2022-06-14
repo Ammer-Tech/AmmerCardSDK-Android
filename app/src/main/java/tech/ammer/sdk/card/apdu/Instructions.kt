@@ -22,6 +22,14 @@ internal object Instructions {
 }
 
 internal object Tags {
+    //TODO convert pin.size to Byte
+    fun cardPinMaxLength(size: Int): Byte {
+        return if (size == 5)
+            0x5
+        else
+            0x6
+    }
+
     const val STATE: Byte = 0x01
     const val CARD_GUID: Byte = 0x02
     const val CARD_ISSUER: Byte = 0x03
@@ -45,7 +53,7 @@ internal object Tags {
     const val PROCESSING_PUBLIC_KEY_MIN_LENGTH: Short = 65
     const val PROCESSING_PUBLIC_KEY_MAX_LENGTH: Short = 65
     const val CARD_PIN_MIN_LENGTH: Short = 5
-    const val CARD_PIN_MAX_LENGTH: Byte = 0x5
+    const val CARD_PIN_MAX_LENGTH: Byte = 0x6
     const val CARD_PUBLIC_KEY_MIN_LENGTH: Short = 65
     const val CARD_PUBLIC_KEY_MAX_LENGTH: Short = 65
     const val CARD_PRIVATE_KEY_MIN_LENGTH: Short = 32

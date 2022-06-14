@@ -39,7 +39,7 @@ internal class APDUBuilder private constructor() {
         } else {
             val output = ByteArray(header.size + data!!.size)
             System.arraycopy(header, 0, output, 0, header.size)
-            System.arraycopy(data!!, 0, output, header.size, data!!.size)
+            System.arraycopy(data, 0, output, header.size, data!!.size)
 
             output[ISO7816.OFFSET_LC.toInt()] = data!!.size.toByte()
             output
