@@ -1,6 +1,6 @@
 # CardSDK
 
-The Trustody Card SDK enables your iOS application to use a Trustody smart-card as a cryptographic interface which is used to:
+The Card SDK enables your iOS application to use smart-card as a cryptographic interface which is used to:
 
 1. Generate a Secp256k1 Keypair
 2. Set/Modify the PIN code used to trigger cryptographic operations (set at key generation time, used to invoke signature function)
