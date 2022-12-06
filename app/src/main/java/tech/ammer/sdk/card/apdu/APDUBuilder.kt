@@ -1,6 +1,7 @@
 package tech.ammer.sdk.card.apdu
 
 internal class APDUBuilder private constructor() {
+
     private val header = ByteArray(5)
     private var data: ByteArray? = null
 

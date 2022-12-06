@@ -272,7 +272,6 @@ class NFCCardController(private val listener: CardControllerListener) :
     }
 
     override fun signData(payload: String, pin: String): String? {
-        Log.d("signDataWallet", "payload $payload pin $pin")
         try {
             val pinBytes = pinGetBytes(pin)
             //unlock(pinBytes);
