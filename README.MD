@@ -1,4 +1,4 @@
-# TrustodySDK
+# CardSDK
 
 The Trustody Card SDK enables your iOS application to use a Trustody smart-card as a cryptographic interface which is used to:
 
