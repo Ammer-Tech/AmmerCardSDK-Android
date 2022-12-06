@@ -1,6 +1,6 @@
 # Ammer Smart Card SDK
 
-The Trustody Card SDK enables your Android application to use a Trustody smart-card as a cryptographic interface which is used to:
+The Ammer Card SDK enables your Android application to use a Ammer smart-card as a cryptographic interface which is used to:
 
 1. Generate a Secp256k1 Keypair
 2. Set/Modify the PIN code used to trigger cryptographic operations (set at key generation time, used to invoke signature function)
