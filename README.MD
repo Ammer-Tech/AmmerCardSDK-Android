@@ -7,27 +7,8 @@ The Trustody Card SDK enables your iOS application to use a Trustody smart-card 
 3. Extract the public key to generate an address for a blockchain which leverage Secp256k1 keys (e.g. Bitcoin, Ethereum)
 4. Perform a NONE_WITH_ECDSA signature scheme on a 64-byte payload
 
-## General Usage
-
-```xml
-<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:description="@string/servicedesc"
-    android:requireDeviceUnlock="false">
-
-    <aid-group
-        android:category="other"
-        android:description="@string/aiddescription">
-
-        <aid-filter android:name="325041592E5359532E4444463031" />
-        <aid-filter android:name="A0000008820001" />
-    </aid-group>
-
-</host-apdu-service>
-```
 
 ### Examples
-
-##### Get the card state
 
 Example
 
@@ -35,10 +16,10 @@ Example
 package com.example.sample
 
 ...
-import tech . ammer . sdk . card . CardControllerFactory
-        import tech . ammer . sdk . card . CardControllerListener
-        import tech . ammer . sdk . card . ICardController
-        import tech . ammer . sdk . card . ReaderMode
+import tech.ammer.sdk.card.CardControllerFactory
+import tech.ammer.sdk.card.CardControllerListener
+import tech.ammer.sdk.card.ICardController
+import tech.ammer.sdk.card.ReaderMode
 
 class MainActivity : Activity(), CardControllerListener {
     private var cardController: ICardController? = null
@@ -53,7 +34,8 @@ class MainActivity : Activity(), CardControllerListener {
     }
 
     override fun onAppletSelected() {
-        cardController?.select() //Required!!
+//         Required!!
+        cardController?.select() 
         val isNotActivate = cardController?.isNotActivate()
 
         val pin = "123456"
