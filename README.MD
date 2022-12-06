@@ -1,7 +1,7 @@
 # TrustodySDK
 
-The Trustody Card SDK enables your iOS application to use a Trustody smart-card as a cryptographic interface which is used
-to:
+The Trustody Card SDK enables your iOS application to use a Trustody smart-card as a cryptographic interface which is used to:
+
 1. Generate a Secp256k1 Keypair
 2. Set/Modify the PIN code used to trigger cryptographic operations (set at key generation time, used to invoke signature function)
 3. Extract the public key to generate an address for a blockchain which leverage Secp256k1 keys (e.g. Bitcoin, Ethereum)
@@ -9,7 +9,7 @@ to:
 
 ## General Usage
 
-```
+```xml
 <host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/servicedesc"
     android:requireDeviceUnlock="false">
@@ -30,13 +30,15 @@ to:
 ##### Get the card state
 
 Example
+
 ```kotlin
 package com.example.sample
+
 ...
-import tech.ammer.sdk.card.CardControllerFactory
-import tech.ammer.sdk.card.CardControllerListener
-import tech.ammer.sdk.card.ICardController
-import tech.ammer.sdk.card.ReaderMode
+import tech . ammer . sdk . card . CardControllerFactory
+        import tech . ammer . sdk . card . CardControllerListener
+        import tech . ammer . sdk . card . ICardController
+        import tech . ammer . sdk . card . ReaderMode
 
 class MainActivity : Activity(), CardControllerListener {
     private var cardController: ICardController? = null
@@ -57,11 +59,11 @@ class MainActivity : Activity(), CardControllerListener {
         val pin = "123456"
 
         if (isNotActivate == true) {
-//          Activate a new card and set PIN code
+//            Activate a new card and set PIN code
             cardController?.activate(pin)
         }
 
-        //        Modify card PIN code
+//        Modify card PIN code
         val newPin = "123456"
         cardController?.changePin(pin, newPin)
 
@@ -70,7 +72,8 @@ class MainActivity : Activity(), CardControllerListener {
         val pubKey = cardController?.getPublicKeyString(pin)
 
 //        Extract private key
-//        ⚠️ You can only extract the private key once for offline backup such as a paper wallet, a USB stick, or optical media which is never read on a device which is or will be connected to the internet ⚠️
+//        ⚠️ You can only extract the private key once for offline backup such as a paper wallet, a USB stick,
+//        or optical media which is never read on a device which is or will be connected to the internet ⚠️
         val pvkKey = cardController?.getPrivateKeyString(pin)
 
 //        Sign a 64 - byte string using ECDSA
