@@ -7,66 +7,81 @@ to:
 3. Extract the public key to generate an address for a blockchain which leverage Secp256k1 keys (e.g. Bitcoin, Ethereum)
 4. Perform a NONE_WITH_ECDSA signature scheme on a 64-byte payload
 
-## Install
-
 ## General Usage
 
-### Info.plist definitions
-
 ```
-<key>com.apple.developer.nfc.readersession.iso7816.select-identifiers</key>
-<array>
-  <string>706f727465425443</string>
-  <string>63989600FF0001</string>
-  <string>A0000008820001</string>
-</array>
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/servicedesc"
+    android:requireDeviceUnlock="false">
+
+    <aid-group
+        android:category="other"
+        android:description="@string/aiddescription">
+
+        <aid-filter android:name="325041592E5359532E4444463031" />
+        <aid-filter android:name="A0000008820001" />
+    </aid-group>
+
+</host-apdu-service>
 ```
-
-```
-<key>NFCReaderUsageDescription</key>
-<string>
-  <string>Use NFC to read data</string>
-</string>
-```
-
-### Trustody Card State Machine
-
-NOT_INITED - card has no public-keu
-
-| State       | Description |Eligible next states |
-| ----------- | ----------- |----------- |
-| NOT_INITED      | The card has no keypair and PIN       | INITED       |
-| INITED   | The card has a keypair and PIN set  |ACTIVATED_LOCKED        |
-| ACTIVATED_LOCKED   | The card requires a PIN code to use the sign function  |ACTIVATED_UNLOCKED        |
-
-The state could also be ``UNDEFINED`` under certain unique circumstances. This can be either a hardware malfunction or a problem with the NFC connection to the host device.
-
 
 ### Examples
 
 ##### Get the card state
 
 Example
-```swift
-import TrustodySDK
+```
+package com.example.sample
+...
+import tech.ammer.sdk.card.CardControllerFactory
+import tech.ammer.sdk.card.CardControllerListener
+import tech.ammer.sdk.card.ICardController
+import tech.ammer.sdk.card.ReaderMode
 
-class MyClass: UIViewController, CardNFCServiceDelegate {
-    
-    private var cardNFCService: CardNFCService?
+class MainActivity : Activity(), CardControllerListener {
+    private var cardController: ICardController? = null
 
-    override func viewDidLoad() {
-        super.viewDidLoad()                
-        self.cardNFCService = CardNFCService(delegate: self)
-        self.cardNFCService?.begin()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+//       Start
+        cardController = CardControllerFactory().getController(ReaderMode.ANDROID_DEFAULT, this)
+        cardController?.open(this)
     }
 
-    //MARK: - CardNFCServiceDelegate
-    public func cardService(_ cardService: CardNFCService, error: Error) {
-        print("error: \(error.localizedDescription)")
+    override fun onAppletSelected() {
+        cardController?.select() //Required!!
+        val isNotActivate = cardController?.isNotActivate()
+
+        val pin = "123456"
+
+        if (isNotActivate == true) {
+//          Activate a new card and set PIN code
+            cardController?.activate(pin)
+        }
+
+        //        Modify card PIN code
+        val newPin = "123456"
+        cardController?.changePin(pin, newPin)
+
+//        Extract public key and metadata
+        val uuid = cardController?.getCardUUID(pin)
+        val pubKey = cardController?.getPublicKeyString(pin)
+
+//        Extract private key
+//        ⚠️ You can only extract the private key once for offline backup such as a paper wallet, a USB stick, or optical media which is never read on a device which is or will be connected to the internet ⚠️
+        val pvkKey = cardController?.getPrivateKeyString(pin)
+
+//        Sign a 64 - byte string using ECDSA
+        val sign = cardController?.signData("bce6d58f7da6c3cd7239cbf5fcc0e323302ff072b20ecf59c501752c0e98906a", pin)
     }
 
-    public func cardService(_ cardService: CardNFCService, state: MetaState, guid: String, issuer: String) {
-        print("state: \(state.rawValue)")
+    override fun onAppletNotSelected(message: String) {
+        Log.d(TAG, "Error: $message")
+    }
+
+    override fun tagDiscoverTimeout() {
     }
 }
 ```
