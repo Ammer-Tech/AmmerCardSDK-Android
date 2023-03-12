@@ -5,14 +5,18 @@ import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
-import android.widget.Toast
 import com.google.android.material.button.MaterialButton
 import tech.ammer.sdk.card.CardControllerFactory
 import tech.ammer.sdk.card.CardControllerListener
 import tech.ammer.sdk.card.ICardController
 import tech.ammer.sdk.card.ReaderMode
-import java.util.logging.Logger
-import kotlin.system.measureTimeMillis
+import tech.ammer.sdk.card.apdu.ERROR_CODES
+import tech.ammer.sdk.card.apdu.ERROR_CODES.SIGN_NO_VERIFY
+import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_CONDITIONS_NOT_SATISFIED
+import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_FILE_NOT_FOUND
+import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_WRONG_DATA
+import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_WRONG_P1P2
+import tech.ammer.sdk.card.apdu.ERROR_CODES.TAG_WAL_LOST
 
 class MainActivity : Activity(), CardControllerListener {
     private var cardController: ICardController? = null
@@ -42,53 +46,62 @@ class MainActivity : Activity(), CardControllerListener {
      * Card is attached
      */
     @SuppressLint("SetTextI18n")
-    override fun onAppletSelected() {
-        Log.d("Applet", "attach ${Thread.currentThread()}")
-
+    override fun onCardAttach() {
         cardController?.select() //Required!!
 
         runOnUiThread {
             title?.text = "Processing.."
         }
 
-        val isNotActivate = cardController?.isNotActivate()
-
-        runOnUiThread {
-            title?.text = "isActivated: ${isNotActivate == false}\nActivation..."
-        }
-
-        if (isNotActivate == true) {
-            cardController?.activate(pin)
-        }
-
-        val uuid = cardController?.getCardUUID(pin)
+        val isNotActivated = cardController?.isNotActivated()
+//        if (isNotActivated == true) {
+//            runOnUiThread {
+//                title?.text = "Activation..."
+//            }
+////            cardController?.activate(pin)
+//        }
+//        val availablePinCount = cardController?.getAvailablePinCount().toString()
+//        val uuid = cardController?.getCardUUID(pin)
+//        val cardIssuer = cardController?.getIssuer().toString()
+//        val pubKey = cardController?.getPublicKeyString(pin)
 
 //      Can be called only once
 //      val pvkKey = cardController?.getPrivateKeyString(pin)
 
-        val pubKey = cardController?.getPublicKeyString(pin)
-
-        val newPin = "123456"
-        cardController?.changePin(pin, newPin)
+//        val newPin = "123456"
+//        cardController?.changePin(pin, newPin)
 
         val sign = cardController?.signData("bce6d58f7da6c3cd7239cbf5fcc0e323302ff072b20ecf59c501752c0e98906a", pin)
 
+        val toSign = "3a5cb9040a7088ec25fb4c1a8c18ce29882ea307df0201ba25ac52206ac77a5f"
+        val gatewaySignature = "3045022100c595b7b18c73a28024d3bf7c21e1880203ca6c760d06069feb3bafa795365952022048d5dd965f6a326bc7b38a26324efb6c1d9293597c5dcbf293dd76d9bcf664f0"
+        val signByNonce = cardController?.signDataByNonce(toSign, gatewaySignature)
+
         runOnUiThread {
-            title?.text = "uuid: $uuid\n\npubKey: $pubKey\n\nsign: $sign\n\n"
+            title?.text =
+//                "uuid: $uuid\n\n" +
+//                        "issuer: $cardIssuer\n\n" +
+//                        "availablePinCount: $availablePinCount\n\n" +
+//                        "pubKey: $pubKey\n\n" +
+                "sign: $sign\n\n" +
+                        "signNonce: ${signByNonce}\n\n"
         }
     }
 
     @SuppressLint("SetTextI18n")
-    override fun onAppletNotSelected(message: String) {
-        runOnUiThread {
-            findViewById<TextView>(R.id.title).text = "Error: $message"
+    override fun onCardError(code: Short) {
+        val message = when (code) {
+            SW_CONDITIONS_NOT_SATISFIED -> "Condition not satisfied ${cardController?.isUnlock()} ,${cardController?.getAvailablePinCount()}"
+            SW_WRONG_DATA -> "Bad sign data"
+            SW_WRONG_P1P2 -> "Wrong PIN, Number of attempts:${cardController?.getAvailablePinCount()}"
+            SW_FILE_NOT_FOUND -> "Card is blocked or the applet isn't found"
+            TAG_WAL_LOST -> "The card was detached early"
+            SIGN_NO_VERIFY -> "Sign not verify"
+            else -> "Error $code"
         }
-    }
 
-    override fun tagDiscoverTimeout() {
-    }
-
-    private fun changePin() {
-        cardController?.changePin(pin, "11111")
+        runOnUiThread {
+            findViewById<TextView>(R.id.title).append("\nError: $message \n")
+        }
     }
 }
