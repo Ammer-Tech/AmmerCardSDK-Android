@@ -230,6 +230,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
 
 
     override fun select() {
+        isUnlock = false
         aidsByte.forEachIndexed { index, aid ->
             try {
                 val command = APDUBuilder.init().setCLA(CLA_ISO7816).setINS(INS_SELECT).setP1(0x04.toByte()).setP2(0x00.toByte()).setData(aid).build()
@@ -254,7 +255,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         try {
             unlock(pin)
             val pinBytes = pinGetBytes(pin)
-            val apduData = APDUData2.createSignData(pinBytes, Hex.decode(payload))
+            val apduData = APDUDataBuilder.createSignData(pinBytes, Hex.decode(payload))
             val apduCommand = APDUBuilder.init().setINS(Instructions.INS_SIGN_DATA).setData(apduData).build()
 
             val fullSignResponse = processCommand("SignData", apduCommand)
@@ -281,7 +282,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
     }
 
     override fun changePin(oldPin: String, newPin: String) {
-        val data = APDUData2.createChangePinData(oldPin, newPin)
+        val data = APDUDataBuilder.createChangePinData(oldPin, newPin)
 
         val command = APDUBuilder.init().setINS(Instructions.INS_CHANGE_PIN).setData(data).build()
 
@@ -311,7 +312,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
 
     override fun signDataByNonce(toSign: String, gatewaySignature: String): String? {
         try {
-            val dataTLV = APDUData2.createSignByNonceData(Hex.decode(toSign), Hex.decode(gatewaySignature))
+            val dataTLV = APDUDataBuilder.createSignByNonceData(Hex.decode(toSign), Hex.decode(gatewaySignature))
 
             val command = APDUBuilder.init().setCLA(CLA_ISO7816).setINS(Instructions.INS_SIGN_PROCESSING_DATA).setData(dataTLV).build()
 

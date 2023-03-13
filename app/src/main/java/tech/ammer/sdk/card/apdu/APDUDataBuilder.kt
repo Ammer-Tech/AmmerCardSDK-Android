@@ -1,7 +1,7 @@
 package tech.ammer.sdk.card.apdu
 
 
-object APDUData2 {
+object APDUDataBuilder {
     fun createSignData(pin: ByteArray, payload: ByteArray): ByteArray {
         return byteArrayOf(Tags.CARD_PIN, pin.size.toByte(), *pin, Tags.DATA_FOR_SIGN, payload.size.toByte(), *payload)
     }
@@ -28,8 +28,8 @@ object APDUData2 {
         )
     }
 
-    fun Buider(): MyApduData {
-        return MyApduData()
+    fun Buider(): ApduData {
+        return ApduData()
     }
 
     private fun pinGetBytes(pin: String): ByteArray {
@@ -41,10 +41,10 @@ object APDUData2 {
     }
 }
 
-class MyApduData {
+class ApduData {
     private val _data = arrayListOf<ByteArray>()
 
-    fun setData(tag: Byte, data: ByteArray): MyApduData {
+    fun setData(tag: Byte, data: ByteArray): ApduData {
         _data.add(byteArrayOf(tag, data.size.toByte(), *data))
         return this
     }

@@ -99,7 +99,6 @@ object CardErrors {
     const val SW_LAST_COMMAND_EXPECTED: Short = 26755
     const val SW_COMMAND_CHAINING_NOT_SUPPORTED: Short = 26756
     const val SIGN_NO_VERIFY: Short = 26759
-    const val WRONG_PIN: Short = 26760
     const val TAG_WAL_LOST: Short = 26761
     const val OTHER_ALGORITHM: Short = 26762
 }
