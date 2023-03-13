@@ -12,7 +12,7 @@ The Ammer Card SDK enables your Android application to use a Ammer smart-card as
 # Dependency
 
 ```Groovy
-implementation files('sample/libs/card-sdk-1.4.aar')
+implementation files('sample/libs/card-sdk-#.#.aar')
 implementation 'org.bouncycastle:bcprov-jdk15to18:1.68'
 ```
 

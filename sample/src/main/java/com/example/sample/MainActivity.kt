@@ -8,6 +8,7 @@ import com.google.android.material.button.MaterialButton
 import tech.ammer.sdk.card.CardControllerListener
 import tech.ammer.sdk.card.CardSdk
 import tech.ammer.sdk.card.ICardController
+import tech.ammer.sdk.card.apdu.CardErrors
 import tech.ammer.sdk.card.apdu.CardErrors.SIGN_NO_VERIFY
 import tech.ammer.sdk.card.apdu.CardErrors.SW_CONDITIONS_NOT_SATISFIED
 import tech.ammer.sdk.card.apdu.CardErrors.SW_FILE_NOT_FOUND

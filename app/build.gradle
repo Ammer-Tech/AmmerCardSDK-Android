@@ -9,18 +9,13 @@ android {
     defaultConfig {
         minSdk 25
         targetSdk 31
-        versionCode 4
-        versionName "1.4"
+        versionCode 5
+        versionName "1.5"
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-
-        debug {
-            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -29,9 +24,6 @@ android {
         variant.outputs.all { output ->
             if (outputFile != null && outputFileName.endsWith('.aar')) {
                 outputFileName = "card-sdk-${defaultConfig.versionName}.aar"
-            }
-            if (outputFile != null && outputFileName.endsWith('.jar')) {
-                outputFileName = "card-sdk-${defaultConfig.versionName}.jar"
             }
         }
     }
