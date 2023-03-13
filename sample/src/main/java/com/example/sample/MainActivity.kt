@@ -3,22 +3,21 @@ package com.example.sample
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
-import android.util.Log
 import android.widget.TextView
 import com.google.android.material.button.MaterialButton
-import tech.ammer.sdk.card.CardControllerFactory
 import tech.ammer.sdk.card.CardControllerListener
+import tech.ammer.sdk.card.CardSdk
 import tech.ammer.sdk.card.ICardController
-import tech.ammer.sdk.card.ReaderMode
-import tech.ammer.sdk.card.apdu.ERROR_CODES
-import tech.ammer.sdk.card.apdu.ERROR_CODES.SIGN_NO_VERIFY
-import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_CONDITIONS_NOT_SATISFIED
-import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_FILE_NOT_FOUND
-import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_WRONG_DATA
-import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_WRONG_P1P2
-import tech.ammer.sdk.card.apdu.ERROR_CODES.TAG_WAL_LOST
+import tech.ammer.sdk.card.apdu.CardErrors
+import tech.ammer.sdk.card.apdu.CardErrors.SIGN_NO_VERIFY
+import tech.ammer.sdk.card.apdu.CardErrors.SW_CONDITIONS_NOT_SATISFIED
+import tech.ammer.sdk.card.apdu.CardErrors.SW_FILE_NOT_FOUND
+import tech.ammer.sdk.card.apdu.CardErrors.SW_WRONG_DATA
+import tech.ammer.sdk.card.apdu.CardErrors.SW_WRONG_P1P2
+import tech.ammer.sdk.card.apdu.CardErrors.TAG_WAL_LOST
 
 class MainActivity : Activity(), CardControllerListener {
+
     private var cardController: ICardController? = null
     private val pin = "123456"
     private var title: TextView? = null
@@ -28,7 +27,7 @@ class MainActivity : Activity(), CardControllerListener {
         setContentView(R.layout.activity_main)
         title = findViewById(R.id.title)
 
-        cardController = CardControllerFactory().getController(ReaderMode.ANDROID_DEFAULT, this)
+        cardController = CardSdk.getController(this)
         cardController?.open(this)
 
         findViewById<MaterialButton>(R.id.start).setOnClickListener {
@@ -63,7 +62,7 @@ class MainActivity : Activity(), CardControllerListener {
         val pubKey = cardController?.getPublicKeyString(pin)
 
 //      Can be called only once
-//      val pvkKey = cardController?.getPrivateKeyString(pin)
+      val pvkKey = cardController?.getPrivateKeyString(pin)
 
         val newPin = "123456"
         cardController?.changePin(pin, newPin)
@@ -80,6 +79,7 @@ class MainActivity : Activity(), CardControllerListener {
                         "issuer: $cardIssuer\n\n" +
                         "availablePinCount: $availablePinCount\n\n" +
                         "pubKey: $pubKey\n\n" +
+                        "prvKey: $pvkKey\n\n" +
                         "sign: $sign\n\n" +
                         "signNonce: ${signByNonce}\n\n"
         }

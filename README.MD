@@ -9,27 +9,32 @@ The Ammer Card SDK enables your Android application to use a Ammer smart-card as
 
 ### Examples
 
-Example
+# Dependency
+
+```Groovy
+    implementation files('sample/libs/card-sdk-1.4.aar')
+implementation 'org.bouncycastle:bcprov-jdk15to18:1.68'
+```
+
+# Example
 
 ```kotlin
 package com.example.sample
 
-import tech.ammer.sdk.card.CardControllerFactory
 import tech.ammer.sdk.card.CardControllerListener
 import tech.ammer.sdk.card.ICardController
-import tech.ammer.sdk.card.ReaderMode
 
 class MainActivity : Activity(), CardControllerListener {
     private var cardController: ICardController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//       Start
-        cardController = CardControllerFactory().getController(ReaderMode.ANDROID_DEFAULT, this)
+
+        cardController = CardSdk.getController(this)
         cardController?.open(this)
     }
 
-    override fun onAppletSelected() {
+    override fun onCardAttached() {
         cardController?.select() //Required!!
 
         cardController?.isNotActivated()
@@ -50,7 +55,10 @@ class MainActivity : Activity(), CardControllerListener {
     }
 
     override fun onCardError(code: Short) {
-        
+        when (code) {
+            CardErrors.SW_WRONG_P1P2 -> "Wrong PIN"
+                ....
+        }
     }
 }
 ```

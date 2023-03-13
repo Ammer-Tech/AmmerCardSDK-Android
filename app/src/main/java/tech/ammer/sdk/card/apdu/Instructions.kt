@@ -71,7 +71,7 @@ internal object Tags {
     const val INS_EXTERNAL_AUTHENTICATE: Byte = -126
 }
 
-object ERROR_CODES {
+object CardErrors {
     const val SW_NO_ERROR: Short = -28672
     const val SW_BYTES_REMAINING_00: Short = 24832
     const val SW_WRONG_LENGTH: Short = 26368

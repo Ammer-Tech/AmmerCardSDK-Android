@@ -14,8 +14,8 @@ import org.bouncycastle.jce.spec.ECPublicKeySpec
 import org.bouncycastle.util.encoders.Hex
 import tech.ammer.sdk.card.ICardController.Companion.AIDs
 import tech.ammer.sdk.card.apdu.*
-import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_FILE_NOT_FOUND
-import tech.ammer.sdk.card.apdu.ERROR_CODES.SW_NO_ERROR
+import tech.ammer.sdk.card.apdu.CardErrors.SW_FILE_NOT_FOUND
+import tech.ammer.sdk.card.apdu.CardErrors.SW_NO_ERROR
 import tech.ammer.sdk.card.apdu.Tags.CLA_ISO7816
 import tech.ammer.sdk.card.apdu.Tags.INS_SELECT
 import tech.ammer.sdk.card.apdu.Tags.VALUE_OFFSET
@@ -66,8 +66,8 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
 
     private fun convertError(e: Exception): Short {
         return when {
-            (e as? TagLostException) != null -> ERROR_CODES.TAG_WAL_LOST
-            (e as? NoSuchAlgorithmException) != null -> ERROR_CODES.OTHER_ALGORITHM
+            (e as? TagLostException) != null -> CardErrors.TAG_WAL_LOST
+            (e as? NoSuchAlgorithmException) != null -> CardErrors.OTHER_ALGORITHM
             e.message?.toShortOrNull() != null -> e.message!!.toShort()
             else -> -1
         }
@@ -145,7 +145,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
             return pubKey
         } catch (e: Exception) {
             e.printStackTrace()
-            throw Exception("${ERROR_CODES.SW_WRONG_P1P2}")
+            throw Exception("${CardErrors.SW_WRONG_P1P2}")
         }
     }
 
@@ -261,7 +261,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
             val mySign = fullSignResponse.takeLast(fullSignResponse.size - 2)
             val hexSign = Hex.toHexString(mySign.toByteArray())
             if (!verify(payload, hexSign)) {
-                throw Exception(ERROR_CODES.SIGN_NO_VERIFY.toString())
+                throw Exception(CardErrors.SIGN_NO_VERIFY.toString())
             }
             lock()
             return hexSign

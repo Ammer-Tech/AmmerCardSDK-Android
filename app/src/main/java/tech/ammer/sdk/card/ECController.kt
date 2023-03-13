@@ -1,23 +1,20 @@
 package tech.ammer.sdk.card
 
-import android.util.Log
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.interfaces.ECPrivateKey
 import org.bouncycastle.jce.interfaces.ECPublicKey
-import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
 import org.bouncycastle.util.encoders.Hex
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.jce.spec.ECPrivateKeySpec
 import org.bouncycastle.jce.spec.ECPublicKeySpec
+import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
 import java.lang.Exception
 import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.Security
-import java.util.*
 
 internal class ECController private constructor() {
-
-    private val parameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
+    internal val parameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
     private val curve = SecP256K1Curve()
 
     fun getPublicKeyString(w: ByteArray?): String? {
@@ -56,7 +53,6 @@ internal class ECController private constructor() {
     }
 
     init {
-        val start = System.currentTimeMillis()
         try {
             val w = byteArrayOf(
                 4, -11, -41, 13, 21, 100, -38, 88, -62, -14, -61, 88, 29, -73, -107, 124, 104, -36, -118, -22, 108, -72,
@@ -67,10 +63,8 @@ internal class ECController private constructor() {
             val cardKeySpec = ECPublicKeySpec(parameterSpec.curve.decodePoint(w), parameterSpec)
             val cardKey = KeyFactory.getInstance("EC", "BC").generatePublic(cardKeySpec) as ECPublicKey
             val fromCard = Hex.toHexString(cardKey.encoded)
-            Log.d("INIT", fromCard)
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        Log.d("init ", (Calendar.getInstance().time.time - start).toString() + "ms")
     }
 }
