@@ -26,7 +26,7 @@ class MainActivity : Activity(), CardControllerListener {
     private var cardController: ICardController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        ...
+
 //       Start
         cardController = CardControllerFactory().getController(ReaderMode.ANDROID_DEFAULT, this)
         cardController?.open(this)
@@ -53,7 +53,7 @@ class MainActivity : Activity(), CardControllerListener {
     }
 
     override fun onCardError(code: Short) {
-        ...
+        
     }
 }
 ```
