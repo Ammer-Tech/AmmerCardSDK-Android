@@ -42,11 +42,8 @@ class MainActivity : Activity(), CardControllerListener {
         }
     }
 
-    /**
-     * Card is attached
-     */
     @SuppressLint("SetTextI18n")
-    override fun onCardAttach() {
+    override fun onCardAttached() {
         cardController?.select() //Required!!
 
         runOnUiThread {
@@ -54,22 +51,22 @@ class MainActivity : Activity(), CardControllerListener {
         }
 
         val isNotActivated = cardController?.isNotActivated()
-//        if (isNotActivated == true) {
-//            runOnUiThread {
-//                title?.text = "Activation..."
-//            }
-////            cardController?.activate(pin)
-//        }
-//        val availablePinCount = cardController?.getAvailablePinCount().toString()
-//        val uuid = cardController?.getCardUUID(pin)
-//        val cardIssuer = cardController?.getIssuer().toString()
-//        val pubKey = cardController?.getPublicKeyString(pin)
+        if (isNotActivated == true) {
+            runOnUiThread {
+                title?.text = "Activation..."
+            }
+            cardController?.activate(pin)
+        }
+        val availablePinCount = cardController?.getAvailablePinCount().toString()
+        val uuid = cardController?.getCardUUID(pin)
+        val cardIssuer = cardController?.getIssuer().toString()
+        val pubKey = cardController?.getPublicKeyString(pin)
 
 //      Can be called only once
 //      val pvkKey = cardController?.getPrivateKeyString(pin)
 
-//        val newPin = "123456"
-//        cardController?.changePin(pin, newPin)
+        val newPin = "123456"
+        cardController?.changePin(pin, newPin)
 
         val sign = cardController?.signData("bce6d58f7da6c3cd7239cbf5fcc0e323302ff072b20ecf59c501752c0e98906a", pin)
 
@@ -79,11 +76,11 @@ class MainActivity : Activity(), CardControllerListener {
 
         runOnUiThread {
             title?.text =
-//                "uuid: $uuid\n\n" +
-//                        "issuer: $cardIssuer\n\n" +
-//                        "availablePinCount: $availablePinCount\n\n" +
-//                        "pubKey: $pubKey\n\n" +
-                "sign: $sign\n\n" +
+                "uuid: $uuid\n\n" +
+                        "issuer: $cardIssuer\n\n" +
+                        "availablePinCount: $availablePinCount\n\n" +
+                        "pubKey: $pubKey\n\n" +
+                        "sign: $sign\n\n" +
                         "signNonce: ${signByNonce}\n\n"
         }
     }

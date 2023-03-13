@@ -1,6 +1,6 @@
 package tech.ammer.sdk.card
 
 interface CardControllerListener {
-    fun onCardAttach()
+    fun onCardAttached()
     fun onCardError(code: Short)
 }

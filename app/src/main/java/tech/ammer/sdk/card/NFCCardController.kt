@@ -57,7 +57,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         try {
             isoDep?.connect()
             isoDep?.timeout = CONNECT_TIMEOUT
-            listener.onCardAttach()
+            listener.onCardAttached()
         } catch (e: Exception) {
             e.printStackTrace()
             listener.onCardError(convertError(e))
