@@ -1,13 +1,13 @@
 # Ammer Smart Card SDK
 
-### Download android-card-sdk/sample/libs/card-sdk-#.#.aar
+The Ammer Card SDK enables your Android application to use a Ammer smart-card as an external keystore with signing capabilities.
 
-The Ammer Card SDK enables your Android application to use a Ammer smart-card as a cryptographic interface which is used to:
+The SDK covers the following functions:
 
 1. Generate a Secp256k1 Keypair
-2. Set/Modify the PIN code used to trigger cryptographic operations (set at key generation time, used to invoke signature function)
-3. Extract the public key to generate an address for a blockchain which leverage Secp256k1 keys (e.g. Bitcoin, Ethereum)
-4. Perform a NONE_WITH_ECDSA signature scheme on a 64-byte payload
+2. Set/Modify the PIN code used to trigger cryptographic operations (e.g. digital signature, private key extraction)
+3. Extract the public key which is then used to generate a DLT address (e.g. Bitcoin, Ethereum)
+4. Perform a NONE_WITH_ECDSA signature scheme on a 64-byte payload (assuming the data has already been hashed)
 
 ### Examples
 
