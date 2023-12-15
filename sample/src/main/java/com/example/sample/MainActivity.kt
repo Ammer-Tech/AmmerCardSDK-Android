@@ -55,7 +55,7 @@ class MainActivity : Activity(), CardControllerListener {
             title?.text = "Processing.."
         }
 
-        val needActivation = cardController?.isNeedActivation()
+        val needActivation = cardController?.doNeedActivation()
         if (needActivation == true) {
             runOnUiThread {
                 title?.text = "Activation..."

@@ -28,7 +28,7 @@ interface ICardController {
 
     fun select(): String
 
-    fun isNeedActivation(): Boolean
+    fun doNeedActivation(): Boolean
 
     fun activate(pin: String): Boolean
 

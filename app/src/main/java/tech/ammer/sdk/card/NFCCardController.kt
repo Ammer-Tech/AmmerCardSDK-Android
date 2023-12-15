@@ -289,7 +289,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         throw Exception(SW_FILE_NOT_FOUND.toString())
     }
 
-    override fun isNeedActivation(): Boolean {
+    override fun doNeedActivation(): Boolean {
         val command = APDUBuilder.init().setINS(Instructions.INS_GET_STATE).build()
         val status = processCommand("isNotActivated:", command)
 

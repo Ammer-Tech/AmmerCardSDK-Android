@@ -37,19 +37,22 @@ class MainActivity : Activity(), CardControllerListener {
     override fun onCardAttached() {
         cardController?.select() //Required!!
 
-        cardController?.isNotActivated()
+        cardController?.doNeedActivation()
         cardController?.activate(newPin)
 
-        cardController?.getAvailablePinCount()
+        cardController?.cou()
         cardController?.getCardUUID(pin)
         cardController?.getIssuer().toString()
 
-        cardController?.getPublicKeyString(pin)
-        cardController?.getPrivateKeyString(pin)
+        cardController?.getPublicKeyECDSA(pin)
+        cardController?.getPublicKeyEDDSA(pin)
+        cardController?.getPrivateKey(pin)
         cardController?.blockCard(pin)
 
-        cardController?.signData(payload, pin)
-        cardController?.signDataByNonce(toSign, gatewaySignature)
+        cardController?.signDataEC(payload, pin)
+        cardController?.signDataED(publicKeyEDDSA, payload, pin)
+        
+//        cardController?.signDataByNonce(toSign, gatewaySignature)
 
         cardController?.changePin(oldPin, newPin)
     }
