@@ -45,8 +45,8 @@ class MainActivity : Activity(), CardControllerListener {
         cardController?.getIssuer().toString()
 
         cardController?.getPublicKeyString(pin)
-//      Can be called only once
         cardController?.getPrivateKeyString(pin)
+        cardController?.blockCard(pin)
 
         cardController?.signData(payload, pin)
         cardController?.signDataByNonce(toSign, gatewaySignature)

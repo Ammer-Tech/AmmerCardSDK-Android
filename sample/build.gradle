@@ -4,15 +4,14 @@ plugins {
 }
 
 android {
-    compileSdk 31
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.example.sample"
         minSdk 25
-        targetSdk 31
         versionCode 1
         versionName "1.1"
-
+        targetSdk = 34
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -30,13 +29,15 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    namespace 'com.example.sample'
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.7.0'
-    implementation 'androidx.appcompat:appcompat:1.4.1'
-    implementation 'com.google.android.material:material:1.5.0'
-    implementation 'org.bouncycastle:bcprov-jdk15to18:1.68'
-    implementation files('/Users/dimak/AndroidStudioProjects/android-card-sdk/sample/libs/card-sdk-1.5.aar')
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'org.bouncycastle:bcprov-jdk15to18:1.77'
+    implementation project(':app')
+//    implementation files('/Users/dimak/AndroidStudioProjects/android-card-sdk/sample/libs/card-sdk-1.5.aar')
     //    implementation project(path: ':app')
 }

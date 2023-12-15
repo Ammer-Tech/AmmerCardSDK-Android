@@ -10,7 +10,9 @@ import android.util.Log
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.interfaces.ECPublicKey
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec
+import org.bouncycastle.jce.spec.ECParameterSpec
 import org.bouncycastle.jce.spec.ECPublicKeySpec
+import org.bouncycastle.math.ec.ECPoint
 import org.bouncycastle.util.encoders.Hex
 import tech.ammer.sdk.card.ICardController.Companion.AIDs
 import tech.ammer.sdk.card.apdu.*
@@ -21,8 +23,12 @@ import tech.ammer.sdk.card.apdu.Tags.INS_SELECT
 import tech.ammer.sdk.card.apdu.Tags.VALUE_OFFSET
 import java.nio.ByteBuffer
 import java.security.KeyFactory
+import java.security.KeyPair
 import java.security.NoSuchAlgorithmException
 import java.security.Signature
+import java.security.interfaces.ECPrivateKey
+import java.security.spec.EncodedKeySpec
+import java.security.spec.PKCS8EncodedKeySpec
 import java.util.*
 import kotlin.experimental.and
 
@@ -138,7 +144,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return UUID(mostSigBits, leastSigBits)
     }
 
-    override fun getPublicKeyString(pin: String): String? {
+    override fun getPublicKeyECDSA(pin: String): String? {
         try {
             unlock(pin)
             val pubKey = ECController.instance?.getPublicKeyString(publicKey())
@@ -149,17 +155,49 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         }
     }
 
-    override fun getPrivateKeyString(pin: String): String? {
+    override fun getPublicKeyEDDSA(pin: String): String? {
+        try {
+            unlock(pin)
+            val _key = publicKeyED()
+            val pubKey = ECController
+                .instance
+                ?.getEDPublicKeyString(_key)
+
+            Log.d("", ">>> edPublicKeyStringHex: $pubKey")
+            return pubKey
+
+        } catch (it: Exception) {
+            it.printStackTrace()
+        }
+
+        return null
+    }
+
+    private fun publicKeyED(): ByteArray {
+        val command = APDUBuilder
+            .init()
+            .setINS(Instructions.INS_ED_GET_PUBLIC_KEY)
+            .build()
+
+        val cmd = processCommand("GetPublicKey", command)
+        return cmd.takeLast(cmd.size - 2).toByteArray()
+    }
+
+    override fun getPrivateKey(pin: String): String? {
         kotlin.runCatching {
             unlock(pin)
             val privKey = privateKey(pin)
-            blockGetPrivateKey(pin)
             return ECController.instance?.getPrivateKeyString(privKey)
         }.onFailure {
             it.printStackTrace()
         }
 
         return null
+    }
+
+    override fun blockCard(pin: String) {
+        unlock(pin)
+        blockGetPrivateKey(pin)
     }
 
     private fun blockGetPrivateKey(pin: String) {
@@ -228,30 +266,37 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return true // TODO FIX ME
     }
 
-
-    override fun select() {
+    override fun select(): String {
         isUnlock = false
         aidsByte.forEachIndexed { index, aid ->
             try {
-                val command = APDUBuilder.init().setCLA(CLA_ISO7816).setINS(INS_SELECT).setP1(0x04.toByte()).setP2(0x00.toByte()).setData(aid).build()
+                val command = APDUBuilder
+                    .init()
+                    .setCLA(CLA_ISO7816)
+                    .setINS(INS_SELECT)
+                    .setP1(0x04.toByte())
+                    .setP2(0x00.toByte())
+                    .setData(aid)
+                    .build()
+
                 processCommand("Select", command)
-                return
+                return Hex.toHexString(aid)
             } catch (e: Throwable) {
-                if (e.message != SW_FILE_NOT_FOUND.toString() || aidsByte.size - 1 == index) {
-                    throw e
-                }
+                e.printStackTrace()
             }
         }
+
+        throw Exception(SW_FILE_NOT_FOUND.toString())
     }
 
-    override fun isNotActivated(): Boolean {
+    override fun isNeedActivation(): Boolean {
         val command = APDUBuilder.init().setINS(Instructions.INS_GET_STATE).build()
         val status = processCommand("isNotActivated:", command)
 
         return status[2] == State.INITED
     }
 
-    override fun signData(payload: String, pin: String): String? {
+    override fun signDataEC(payload: String, pin: String): String? {
         try {
             unlock(pin)
             val pinBytes = pinGetBytes(pin)
@@ -270,7 +315,48 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
             e.printStackTrace()
             throw e
         }
+    }
+
+    override fun signDataED(publicKeyEDDSA: String, toSign: String, pin: String): String? {
+        try {
+            if (!isUnlock) {
+                unlock(pin)
+            }
+
+            val privateNonce = PointEncoder.privateNonce
+            val publicNonce = PointEncoder.getPublicNonce(privateNonce)
+
+            val apduData = APDUBuilder
+                .init()
+                .setData(
+                    pin = pinGetBytes(pin),
+                    publicKey = Hex.decode(publicKeyEDDSA),
+                    privateNonce = privateNonce,
+                    publicNonce = publicNonce,
+                    payload = Hex.decode(toSign)
+                )
+
+            val fullInfoSign = signDataED(apduData)
+            val _sign = fullInfoSign.takeLast(fullInfoSign.size - 2)
+            val signedData = Hex.toHexString(_sign.toByteArray())
+//            KeyStoreHelper.verify(Hex.decode(data), publicKeyObj(), Hex.decode(signedData))
+//            lock()
+            return signedData
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         return null
+    }
+
+    @Throws(Exception::class)
+    private fun signDataED(data: APDUBuilder?): ByteArray {
+        val command = APDUBuilder
+            .init()
+            .setINS(Instructions.INS_ED_SIGN_DATA)
+            .setData(data?.build())
+            .build()
+        return processCommand("SignDataED", command)
     }
 
     private fun unlock(pin: ByteArray?) {
@@ -297,12 +383,12 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return ((issue[2].toShort() and 0xFF.toShort()).toInt().shl(8) + (issue[3].toShort() and 0xFF.toShort()))
     }
 
-    override fun getAvailablePinCount(): Int {
+    override fun countPinAttempts(): Int {
         try {
             val command = APDUBuilder.init().setINS(Instructions.INS_GET_PIN_RETRIES).build()
 
             val cmd = processCommand("IncorrectPin", command)
-            return cmd.getOrNull(2)?.toInt()!!
+            return cmd.lastOrNull()?.toInt() ?: 10
         } catch (e: Throwable) {
             e.printStackTrace()
         }
@@ -330,13 +416,33 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
     }
 
     private fun unlock(pin: String) {
-        if (isUnlock) return
-
-        val pinBytes = pinGetBytes(pin)
-        unlock(byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes))
+        if (!isUnlock) {
+            val pinBytes = pinGetBytes(pin)
+            unlock(byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes))
+        }
     }
 
     override fun isUnlock(): Boolean {
         return isUnlock
+    }
+
+    private fun convertPrivateKeyToIOSStyle(private: String?): String? {
+        private ?: return null
+        val keypair = recoveryAndroid(private)
+        return (keypair.private as ECPrivateKey).s.toString(16)
+    }
+
+    private fun recoveryAndroid(priv: String): KeyPair {
+        val keyFactory = KeyFactory.getInstance("EC", "BC")
+        val privateKeySpec: EncodedKeySpec = PKCS8EncodedKeySpec(Hex.decode(priv))
+        val privateKey = keyFactory.generatePrivate(privateKeySpec)
+
+        val ecSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
+        val q: ECPoint = ecSpec.g.multiply((privateKey as org.bouncycastle.jce.interfaces.ECPrivateKey).d)
+
+        val pubSpec = ECPublicKeySpec(q, ecSpec)
+        val publicKeyGenerated = keyFactory.generatePublic(pubSpec) as java.security.interfaces.ECPublicKey
+
+        return KeyPair(publicKeyGenerated, privateKey)
     }
 }

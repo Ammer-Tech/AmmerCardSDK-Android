@@ -36,6 +36,18 @@ internal class APDUBuilder private constructor() {
         return this
     }
 
+    fun setData(pin: ByteArray, publicKey: ByteArray, privateNonce: ByteArray, publicNonce: ByteArray, payload: ByteArray): APDUBuilder {
+        data = byteArrayOf(
+            Tags.CARD_PIN, pin.size.toByte(), *pin,
+            Tags.ED_CARD_PUBLIC_KEY_ENCODED, publicKey.size.toByte(), *publicKey,
+            Tags.ED_PRIVATE_NONCE, privateNonce.size.toByte(), *privateNonce,
+            Tags.ED_PUBLIC_NONCE, publicNonce.size.toByte(), *publicNonce,
+            Tags.DATA_FOR_SIGN, payload.size.toByte(), *payload
+        )
+
+        return this
+    }
+
     fun build(): ByteArray {
         return if (data == null) {
             header

@@ -19,6 +19,11 @@ internal object Instructions {
     const val INS_DISABLE_PRIVATE_KEY_EXPORT: Byte = 0x10
     const val INS_SIGN_DATA: Byte = 0x11
     const val INS_SIGN_PROCESSING_DATA: Byte = 0x12
+
+    /* Since 2.2 - EdDSA */
+    const val INS_ED_GET_PUBLIC_KEY: Byte = 0x13
+    const val INS_ED_SIGN_DATA: Byte = 0x14
+    const val INS_ED_SIGN_PROCESSING_DATA: Byte = 0x15
 }
 
 internal object Tags {
@@ -58,6 +63,10 @@ internal object Tags {
     const val DATA_FOR_SIGN_MAX_LENGTH: Short = 32
     const val DATA_SIGNATURE_MIN_LENGTH: Short = 70
     const val DATA_SIGNATURE_MAX_LENGTH: Short = 72
+
+    const val ED_CARD_PUBLIC_KEY_ENCODED: Byte = 0x0D
+    const val ED_PRIVATE_NONCE: Byte = 0x0E
+    const val ED_PUBLIC_NONCE: Byte = 0x0F
 
     const val OFFSET_CLA: Byte = 0
     const val OFFSET_INS: Byte = 1

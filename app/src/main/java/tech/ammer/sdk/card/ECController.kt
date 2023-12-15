@@ -67,4 +67,14 @@ internal class ECController private constructor() {
             e.printStackTrace()
         }
     }
+
+    fun getEDPublicKeyString(pubKeyStr: ByteArray?): String? {
+        try {
+            return PointEncoder.convert(pubKeyStr)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return null
+    }
 }
