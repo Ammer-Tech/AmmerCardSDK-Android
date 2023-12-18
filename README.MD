@@ -40,7 +40,7 @@ class MainActivity : Activity(), CardControllerListener {
         cardController?.doNeedActivation()
         cardController?.activate(newPin)
 
-        cardController?.cou()
+        cardController?.countPinAttempts()
         cardController?.getCardUUID(pin)
         cardController?.getIssuer().toString()
 
