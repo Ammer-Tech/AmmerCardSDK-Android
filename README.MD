@@ -53,7 +53,12 @@ class MainActivity : Activity(), CardControllerListener {
 
         cardController?.isNFCPay()
         // For NFC
+        cardController?.setTransactionInfoForNFCPay(Amount, symbol, transactionID) // from version 1.4.3 Ammer Wallet and above
+        signDataNFC(toSignEC, false)
+        signDataNFC(toSignED, true)
         
+        cardController?.lock() // show success on phone
+        cardController?.rejectedTransaction() // show reject on phone
         // For Card
         cardController?.signDataEC(payload, pin)
         cardController?.signDataED(publicKeyEDDSA, payload, pin)
