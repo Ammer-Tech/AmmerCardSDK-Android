@@ -18,8 +18,8 @@ android {
         }
     }
 
-    libraryVariants.all { variant ->
-        variant.outputs.all { output ->
+    libraryVariants.configureEach { variant ->
+        variant.outputs.configureEach { output ->
             if (outputFile != null && outputFileName.endsWith('.aar')) {
                 outputFileName = "card-sdk-${defaultConfig.versionName}.aar"
             }

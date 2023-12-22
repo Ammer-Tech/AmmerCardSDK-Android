@@ -24,6 +24,15 @@ internal object Instructions {
     const val INS_ED_GET_PUBLIC_KEY: Byte = 0x13
     const val INS_ED_SIGN_DATA: Byte = 0x14
     const val INS_ED_SIGN_PROCESSING_DATA: Byte = 0x15
+
+    const val INS_REJECTED_TRANSACTION: Byte = 0x21
+    const val INS_ALGORITHM_SIGN: Byte = 0x22
+    const val INS_TRANSACTION_INFO: Byte = 0x23
+
+    const val ERROR_DEBIT_RESPONSE = 0x11.toByte()
+    const val ERROR_AUTH_RESPONSE = 0x13.toByte()
+    const val ERROR_AUTH_RESPONSE2 = 0x15.toByte()
+    const val ERROR_SUCCESS_RESPONSE = 0x16.toByte()
 }
 
 internal object Tags {
@@ -63,6 +72,11 @@ internal object Tags {
     const val DATA_FOR_SIGN_MAX_LENGTH: Short = 32
     const val DATA_SIGNATURE_MIN_LENGTH: Short = 70
     const val DATA_SIGNATURE_MAX_LENGTH: Short = 72
+    const val ED_DATA_SIGNATURE: Byte = 0x10
+
+    const val ASSET_ID: Byte = 0x20
+    const val AMOUNT_TX: Byte = 0x21
+    const val ORDER_ID: Byte = 0x22
 
     const val ED_CARD_PUBLIC_KEY_ENCODED: Byte = 0x0D
     const val ED_PRIVATE_NONCE: Byte = 0x0E

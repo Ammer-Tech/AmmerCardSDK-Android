@@ -36,25 +36,28 @@ class MainActivity : Activity(), CardControllerListener {
 
     override fun onCardAttached() {
         cardController?.select() //Required!!
+        
 
-        cardController?.doNeedActivation()
-        cardController?.activate(newPin)
-
-        cardController?.countPinAttempts()
         cardController?.getCardUUID(pin)
         cardController?.getIssuer().toString()
-
         cardController?.getPublicKeyECDSA(pin)
+        
+        // Only for Card
+        cardController?.doNeedActivation()
+        cardController?.activate(newPin)
+        cardController?.countPinAttempts()
         cardController?.getPublicKeyEDDSA(pin)
         cardController?.getPrivateKey(pin)
         cardController?.blockCard(pin)
+        cardController?.changePin(oldPin, newPin)
 
+        cardController?.isNFCPay()
+        // For NFC
+        
+        // For Card
         cardController?.signDataEC(payload, pin)
         cardController?.signDataED(publicKeyEDDSA, payload, pin)
-        
-//        cardController?.signDataByNonce(toSign, gatewaySignature)
-
-        cardController?.changePin(oldPin, newPin)
+        cardController?.signDataByNonce(toSign, gatewaySignature)
     }
 
     override fun onCardError(code: Short) {
