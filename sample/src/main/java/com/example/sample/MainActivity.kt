@@ -8,7 +8,7 @@ import androidx.annotation.WorkerThread
 import com.google.android.material.button.MaterialButton
 import org.bouncycastle.util.encoders.Hex
 import tech.ammer.sdk.card.CardControllerListener
-import tech.ammer.sdk.card.CardSdk
+import tech.ammer.sdk.card.CardSDK
 import tech.ammer.sdk.card.ICardController
 import tech.ammer.sdk.card.apdu.CardErrors.SIGN_NO_VERIFY
 import tech.ammer.sdk.card.apdu.CardErrors.SW_CONDITIONS_NOT_SATISFIED
@@ -35,7 +35,7 @@ class MainActivity : Activity(), CardControllerListener {
         setContentView(R.layout.activity_main)
         title = findViewById(R.id.title)
 
-        cardController = CardSdk.getController(this)
+        cardController = CardSDK.getController(this)
         cardController?.open(this)
 
         findViewById<MaterialButton>(R.id.start).setOnClickListener {
