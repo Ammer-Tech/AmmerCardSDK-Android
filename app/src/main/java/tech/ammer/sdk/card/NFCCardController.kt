@@ -6,6 +6,7 @@ import android.nfc.NfcAdapter.ReaderCallback
 import android.nfc.Tag
 import android.nfc.TagLostException
 import android.nfc.tech.IsoDep
+import android.os.Bundle
 import android.util.Log
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.interfaces.ECPublicKey
@@ -35,7 +36,7 @@ import kotlin.experimental.and
 class NFCCardController(private val listener: CardControllerListener) : ReaderCallback, ICardController {
 
     companion object {
-        private const val CONNECT_TIMEOUT = 25000
+        private const val CONNECT_TIMEOUT = 65000
         private var parameterSpec: ECNamedCurveParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
     }
 
@@ -48,7 +49,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
     private val aidsByte = arrayListOf<ByteArray>()
 
     init {
-        ICardController.AIDs.values().forEachIndexed { index, it ->
+        ICardController.AIDs.entries.forEachIndexed { index, it ->
             val aidHex = it.aid.split(":").toTypedArray()
             aidsByte.add(index, ByteArray(aidHex.size))
 
@@ -60,15 +61,34 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
     }
 
     override fun onTagDiscovered(tag: Tag) {
-        isoDep = IsoDep.get(tag)
         try {
+            isoDep = IsoDep.get(tag)
+            isoDep?.timeout = 40000
             isoDep?.connect()
-            isoDep?.timeout = CONNECT_TIMEOUT
+            Log.d("Apdu", ((isoDep?.timeout ?: 0) / 1000).toString()+"," + isoDep?.tag?.techList.toString())
             listener.onCardAttached()
         } catch (e: Exception) {
             e.printStackTrace()
             listener.onCardError(convertError(e))
         }
+    }
+
+    // TODO add card answer processing like if it [0x90,0x00] this is good and all other is error
+    private fun processCommand(commandName: String, command: ByteArray): ByteArray {
+        runCatching {
+            Log.d("ProcessCommand:", "$commandName: ${command.toList()}, isConnected:${isoDep?.isConnected}")
+            val result = isoDep!!.transceive(command)
+            val resultLength = result.size
+            Log.d("ProcessCommand:", "<----, ${result.toList()}")
+            val sw: Short = ByteBuffer.wrap(byteArrayOf(result[resultLength - 2], result[resultLength - 1])).short and 0xFFFF.toShort()
+
+            if (sw != SW_NO_ERROR and 0xFFFF.toShort()) {
+                throw Exception("" + sw)
+            }
+            return if (resultLength > 2) Arrays.copyOf(result, resultLength - 2) else byteArrayOf(-1)
+        }
+
+        return byteArrayOf(-2)
     }
 
     private fun convertError(e: Exception): Short {
@@ -106,13 +126,15 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
 
         nfc = NfcAdapter.getDefaultAdapter(activity)
         if (nfc == null) throw Exception("NFC module not found")
-        if (!nfc!!.isEnabled) throw Exception("NFC not enabled")
+//        if (!nfc!!.isEnabled) throw Exception("NFC not enabled")
         Log.d("NfcAdapter looks ok ", nfc.toString())
     }
 
     override fun startListening() {
         Log.d("listenForCard NfcAdapter is ", nfc.toString())
-        nfc?.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_A, null)
+        nfc?.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+            Bundle().also { it.putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, 15000) }
+        )
     }
 
     override fun stopListening() {
@@ -180,7 +202,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
             .setINS(Instructions.INS_ED_GET_PUBLIC_KEY)
             .build()
 
-        val cmd = processCommand("GetPublicKey", command)
+        val cmd = processCommand("GetPublicKeyED", command)
         return cmd.takeLast(cmd.size - 2).toByteArray()
     }
 
@@ -215,20 +237,6 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         signature.initVerify(publicKeyObj())
         signature.update(Hex.decode(data))
         return signature.verify(Hex.decode(signedData))
-    }
-
-    // TODO add card answer processing like if it [0x90,0x00] this is good and all other is error
-    private fun processCommand(commandName: String, command: ByteArray): ByteArray {
-        Log.d("ProcessCommand:", "$commandName: ${command.toList()}")
-        val result = isoDep!!.transceive(command)
-
-        val resultLength = result.size
-        val sw: Short = ByteBuffer.wrap(byteArrayOf(result[resultLength - 2], result[resultLength - 1])).short and 0xFFFF.toShort()
-
-        if (sw != SW_NO_ERROR and 0xFFFF.toShort()) {
-            throw Exception("" + sw)
-        }
-        return if (resultLength > 2) Arrays.copyOf(result, resultLength - 2) else byteArrayOf()
     }
 
     private fun publicKey(): ByteArray {
@@ -278,9 +286,12 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
                     .setData(aid)
                     .build()
 
-                processCommand("Select", command)
+                val _result = processCommand("Select", command)
+                if (_result.size == 1 && _result[0].toInt() == -2) {
+                    throw Exception("")
+                }
                 return Hex.toHexString(aid).also { result ->
-                    selectedAID = ICardController.AIDs.values().find { it.aid.replace(":", "") == result.uppercase() }
+                    selectedAID = ICardController.AIDs.entries.find { it.aid.replace(":", "").uppercase() == result.uppercase() }
                 }
             } catch (e: Throwable) {
                 e.printStackTrace()
@@ -291,10 +302,13 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
     }
 
     override fun doNeedActivation(): Boolean {
-        val command = APDUBuilder.init().setINS(Instructions.INS_GET_STATE).build()
-        val status = processCommand("isNotActivated:", command)
-
-        return status[2] == State.INITED
+        return try {
+            val command = APDUBuilder.init().setINS(Instructions.INS_GET_STATE).build()
+            val status = processCommand("isNotActivated:", command)
+            return status[2] == State.INITED
+        } catch (e: Throwable) {
+            false
+        }
     }
 
     override fun signDataEC(payload: String, pin: String): String? {
