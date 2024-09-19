@@ -5,12 +5,15 @@ import org.bouncycastle.jce.interfaces.ECPrivateKey
 import org.bouncycastle.jce.interfaces.ECPublicKey
 import org.bouncycastle.util.encoders.Hex
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.jce.spec.ECParameterSpec
 import org.bouncycastle.jce.spec.ECPrivateKeySpec
 import org.bouncycastle.jce.spec.ECPublicKeySpec
 import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
 import java.lang.Exception
 import java.math.BigInteger
 import java.security.KeyFactory
+import java.security.KeyPair
+import java.security.KeyPairGenerator
 import java.security.Security
 
 internal class ECController private constructor() {
@@ -76,5 +79,12 @@ internal class ECController private constructor() {
         }
 
         return null
+    }
+
+    fun createKeyPairHandshake(): KeyPair {
+        val ecParameterSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
+        val keyPairGenerator = KeyPairGenerator.getInstance(NFCCardController.algr, "BC")
+        keyPairGenerator.initialize(ecParameterSpec)
+        return keyPairGenerator.generateKeyPair()
     }
 }

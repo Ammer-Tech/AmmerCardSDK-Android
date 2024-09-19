@@ -2,6 +2,7 @@ package tech.ammer.sdk.card
 
 import android.app.Activity
 import java.math.BigDecimal
+import java.security.Security
 import java.util.*
 
 interface ICardController {
@@ -20,7 +21,7 @@ interface ICardController {
 
     fun getPrivateKey(pin: String): String?
 
-    fun getCardUUID(pin: String): UUID?
+    fun getCardUUID(): UUID?
 
     fun blockCard(pin: String)
 
@@ -41,8 +42,11 @@ interface ICardController {
     fun countPinAttempts(): Int
 
     fun getIssuer(): Int
+    fun getSeries(): Int
 
     fun isUnlock(): Boolean
+    fun unlock(pin: String)
+    fun unlock(pinBytes: ByteArray)
     fun lock()
 
     fun signDataNFC(data: ByteArray, isEDKey: Boolean): String?
@@ -50,14 +54,19 @@ interface ICardController {
     fun setTransactionInfoForNFCPay(amount: BigDecimal, assetId: String, orderID: UUID)
     fun isNFCPay(): Boolean
 
-    fun rejectedTransaction()
+    /*
+    0 - reject
+    1 - success
+     */
+    fun statusTransaction(type: Int)
 
-    enum class AIDs(val aid: String) {
-        AID_1("63:98:96:00:FF:00:01"),
-        AID_2("70:6f:72:74:65:42:54:43"),
-        AID_3("A0:00:00:08:82:00:01"),
-        AID_4("A0:00:00:08:82:00:02"),
-        AID_5("A7:77:77:77:77:77:77")
+    enum class AIDs(val aid: String, val security: Boolean) {
+        AID_1("63:98:96:00:FF:00:01", false),
+        AID_2("70:6f:72:74:65:42:54:43", false),
+        AID_3("A0:00:00:08:82:00:01", false),
+        AID_4("A0:00:00:08:82:00:02", false),
+        AID_6("A0:00:00:08:82:00:03", true),
+        AID_5("A7:77:77:77:77:77:77", false)
     }
 
     enum class ALGORITHMS {

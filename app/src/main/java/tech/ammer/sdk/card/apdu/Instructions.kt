@@ -25,7 +25,7 @@ internal object Instructions {
     const val INS_ED_SIGN_DATA: Byte = 0x14
     const val INS_ED_SIGN_PROCESSING_DATA: Byte = 0x15
 
-    const val INS_REJECTED_TRANSACTION: Byte = 0x21
+    const val INS_STATUS_TRANSACTION: Byte = 0x21
     const val INS_ALGORITHM_SIGN: Byte = 0x22
     const val INS_TRANSACTION_INFO: Byte = 0x23
 
@@ -33,6 +33,8 @@ internal object Instructions {
     const val ERROR_AUTH_RESPONSE = 0x13.toByte()
     const val ERROR_AUTH_RESPONSE2 = 0x15.toByte()
     const val ERROR_SUCCESS_RESPONSE = 0x16.toByte()
+
+    const val INS_ECDH_HANDSHAKE: Byte = 0x16
 }
 
 internal object Tags {

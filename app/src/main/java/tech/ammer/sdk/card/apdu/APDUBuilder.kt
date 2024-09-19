@@ -9,7 +9,8 @@ import tech.ammer.sdk.card.apdu.Tags.OFFSET_P2
 internal class APDUBuilder private constructor() {
 
     private val header = ByteArray(5)
-    private var data: ByteArray? = null
+    var data: ByteArray = byteArrayOf()
+        private set
 
     fun setCLA(cla: Byte): APDUBuilder {
         header[OFFSET_CLA.toInt()] = cla
@@ -32,7 +33,7 @@ internal class APDUBuilder private constructor() {
     }
 
     fun setData(data: ByteArray?): APDUBuilder {
-        this.data = data
+        this.data = data ?: byteArrayOf()
         return this
     }
 
@@ -49,14 +50,14 @@ internal class APDUBuilder private constructor() {
     }
 
     fun build(): ByteArray {
-        return if (data == null) {
+        return if (data.isEmpty()) {
             header
         } else {
-            val output = ByteArray(header.size + data!!.size)
+            val output = ByteArray(header.size + data.size)
             System.arraycopy(header, 0, output, 0, header.size)
-            System.arraycopy(data, 0, output, header.size, data!!.size)
+            System.arraycopy(data, 0, output, header.size, data.size)
 
-            output[OFFSET_LC.toInt()] = data!!.size.toByte()
+            output[OFFSET_LC.toInt()] = data.size.toByte()
             output
         }
     }

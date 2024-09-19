@@ -27,19 +27,19 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_16
+        targetCompatibility JavaVersion.VERSION_16
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '16'
     }
     namespace 'tech.ammer.sdk.card'
 }
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'org.bouncycastle:bcprov-jdk15to18:1.77'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
 }
 
 
