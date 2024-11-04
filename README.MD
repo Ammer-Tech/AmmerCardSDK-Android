@@ -25,7 +25,8 @@ class App : Application() {
         CardSDK.start()
     }
 }
-
+```
+```
 class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +36,7 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
     }
     
     override fun processCommand(byteArray: ByteArray): ByteArray? {
+       // If not a standard NFC adapter (such as Pax or similar), implement your solution
         return isoDep?.transceive(byteArray)
     }
 }
@@ -46,10 +48,8 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
 ```kotlin
 
 fun onTagDiscovered(tag: Tag) {
-    isoDep = IsoDep.get(tag)
-    isoDep?.connect()
-    isoDep?.timeout = 25000
-
+    ... 
+    
     cardController?.select() //Required!!
 
     //About Card
@@ -86,4 +86,4 @@ fun onTagDiscovered(tag: Tag) {
 
 ```
 
-## see sample https://github.com/Ammer-Tech/AmmerCardSDK-Android/blob/master/sample/src/main/java/com/example/sample/MainActivity.kt
+## [Sample](https://github.com/Ammer-Tech/AmmerCardSDK-Android/blob/master/sample/src/main/java/com/example/sample/MainActivity.kt)
