@@ -77,6 +77,7 @@ internal object Tags {
     const val ASSET_ID: Byte = 0x20
     const val AMOUNT_TX: Byte = 0x21
     const val ORDER_ID: Byte = 0x22
+    const val IS_ED_KEY: Byte = 0x23
 
     const val ED_CARD_PUBLIC_KEY_ENCODED: Byte = 0x0D
     const val ED_PRIVATE_NONCE: Byte = 0x0E

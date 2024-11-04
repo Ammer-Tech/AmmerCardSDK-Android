@@ -55,8 +55,8 @@ class MainActivity : Activity(), CardControllerListener, DeviceHelper.ServiceRea
         }
 
         findViewById<MaterialButton>(R.id.stop).setOnClickListener {
-            NfcMan.doNfcOff()
             cardController?.stopListening()
+            NfcMan.doNfcOff()
             title?.text = "Stopped"
         }
     }
@@ -72,7 +72,6 @@ class MainActivity : Activity(), CardControllerListener, DeviceHelper.ServiceRea
     override fun onReady(version: String?) {
         Log.d("Nfc", "$version")
         DeviceHelper.me().register(true)
-
         NfcMan.start()
         cardController = CardSDK.getController(this)
         cardController?.open(this)
@@ -105,7 +104,6 @@ class MainActivity : Activity(), CardControllerListener, DeviceHelper.ServiceRea
         val cardIssuer = cardController?.getIssuer().toString()
         val pubKey = cardController?.getPublicKeyECDSA(pin)
         val pvkKey = cardController?.getPrivateKey(pin)
-        Thread.sleep(2000)
         val pubKeyED: String? = cardController?.getPublicKeyEDDSA(pin)
 
         var signEC: String? = null
@@ -114,11 +112,10 @@ class MainActivity : Activity(), CardControllerListener, DeviceHelper.ServiceRea
 
         if (cardController?.isNFCPay() == true) {
             cardController?.setTransactionInfoForNFCPay(BigDecimal("0.000001"), "AMR", UUID.randomUUID())
-
+            Thread.sleep(2000)
             signEC = cardController?.signDataNFC(Hex.decode(toSignEC), false)
-//            signED = cardController?.signDataNFC(Hex.decode(toSignED), true)
 
-            cardController?.lock() // show success on phone
+//            cardController?.lock() // show success on phone
             cardController?.rejectedTransaction() // show reject on phone
         } else {
 //            val newPin = "123456"

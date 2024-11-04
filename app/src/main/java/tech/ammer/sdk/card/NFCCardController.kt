@@ -65,7 +65,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
             isoDep = IsoDep.get(tag)
             isoDep?.timeout = 40000
             isoDep?.connect()
-            Log.d("Apdu", ((isoDep?.timeout ?: 0) / 1000).toString()+"," + isoDep?.tag?.techList.toString())
+            Log.d("Apdu", isoDep?.tag?.techList?.toList().toString())
             listener.onCardAttached()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -132,7 +132,10 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
 
     override fun startListening() {
         Log.d("listenForCard NfcAdapter is ", nfc.toString())
-        nfc?.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+        nfc?.enableReaderMode(
+            activity,
+            this,
+            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
             Bundle().also { it.putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, 15000) }
         )
     }
@@ -428,8 +431,6 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
             else
                 verify(Hex.toHexString(data), Hex.toHexString(signedDataHex))
 
-            lock()
-
             return Hex.toHexString(signedDataHex)
         }.onFailure {
             it.printStackTrace()
@@ -443,6 +444,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
                 val assetIdBytes = assetId.toByteArray()
                 val orderIdBytes = convertUUIDToBytes(UUID.fromString(orderID.toString()))
                 val amountB = amount.toPlainString().toByteArray()
+                val isEdKeyBytes = false.toString().toByteArray()
 
                 val data = APDUBuilder
                     .init()
@@ -451,7 +453,8 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
                         byteArrayOf(
                             Tags.ASSET_ID, assetIdBytes.size.toByte(), *assetIdBytes,
                             Tags.AMOUNT_TX, amountB.size.toByte(), *amountB,
-                            Tags.ORDER_ID, orderIdBytes.size.toByte(), *orderIdBytes
+                            Tags.ORDER_ID, orderIdBytes.size.toByte(), *orderIdBytes,
+                            Tags.IS_ED_KEY, isEdKeyBytes.size.toByte(), *isEdKeyBytes,
                         )
                     )
                     .build()

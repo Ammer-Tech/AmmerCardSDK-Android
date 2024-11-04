@@ -43,6 +43,7 @@ interface ICardController {
     fun getIssuer(): Int
 
     fun isUnlock(): Boolean
+
     fun lock()
 
     fun signDataNFC(data: ByteArray, isEDKey: Boolean): String?
