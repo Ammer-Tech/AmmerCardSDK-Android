@@ -49,51 +49,58 @@ internal object Tags {
     const val CARD_PRIVATE_KEY: Byte = 0x09
     const val DATA_FOR_SIGN: Byte = 0x0A
     const val DATA_SIGNATURE: Byte = 0x0B
-    const val CARD_PUBLIC_KEY_ED: Byte = 0x0C
-    const val PRIVATE_NONCE: Byte = 0x0D
-    const val PUBLIC_NONCE: Byte = 0x0E
 
-    const val VALUE_OFFSET: Byte = 0x02
+    /* Since 3.0 */
+    const val ECDH_NONCE: Byte = 0x11
+    const val ED_CARD_PRIVATE_KEY: Byte = 0x12
+    const val STATE_LENGTH: Byte = 1
+    const val CARD_GUID_LENGTH: Byte = 16
+    const val CARD_ISSUER_LENGTH: Byte = 2
+    const val CARD_SERIES_LENGTH: Byte = 2
+    const val PROCESSING_PUBLIC_KEY_LENGTH: Byte = 65
+    const val CARD_PIN_LENGTH: Byte = 6
+    const val CARD_PIN_RETRIES_LENGTH: Byte = 1
+    const val CARD_PUBLIC_KEY_LENGTH: Byte = 65
+    const val CARD_PRIVATE_KEY_LENGTH: Byte = 32
+    const val DATA_FOR_SIGN_LENGTH: Byte = 32
+    const val DATA_SIGNATURE_MIN_LENGTH: Byte = 70
+    const val DATA_SIGNATURE_MAX_LENGTH: Byte = 72
 
-    const val STATE_MIN_LENGTH: Short = 1
-    const val STATE_MAX_LENGTH: Short = 1
-    const val CARD_GUID_MIN_LENGTH: Short = 16
-    const val CARD_GUID_MAX_LENGTH: Short = 16
-    const val CARD_ISSUER_MIN_LENGTH: Short = 1
-    const val CARD_ISSUER_MAX_LENGTH: Short = 1
-    const val CARD_SERIES_MIN_LENGTH: Short = 1
-    const val CARD_SERIES_MAX_LENGTH: Short = 1
-    const val PROCESSING_PUBLIC_KEY_MIN_LENGTH: Short = 65
-    const val PROCESSING_PUBLIC_KEY_MAX_LENGTH: Short = 65
-    const val CARD_PIN_MIN_LENGTH: Short = 5
-    const val CARD_PUBLIC_KEY_MIN_LENGTH: Short = 65
-    const val CARD_PUBLIC_KEY_MAX_LENGTH: Short = 65
-    const val CARD_PRIVATE_KEY_MIN_LENGTH: Short = 32
-    const val CARD_PRIVATE_KEY_MAX_LENGTH: Short = 32
-    const val DATA_FOR_SIGN_MIN_LENGTH: Short = 32
-    const val DATA_FOR_SIGN_MAX_LENGTH: Short = 32
-    const val DATA_SIGNATURE_MIN_LENGTH: Short = 70
-    const val DATA_SIGNATURE_MAX_LENGTH: Short = 72
-    const val ED_DATA_SIGNATURE: Byte = 0x10
 
+    /* Since 2.2 - EdDSA */
     const val ASSET_ID: Byte = 0x20
     const val AMOUNT_TX: Byte = 0x21
     const val ORDER_ID: Byte = 0x22
+    const val IS_ED_KEY: Byte = 0x23
 
+    const val ED_CARD_PUBLIC_KEY: Byte = 0x0C
+    const val ED_DATA_SIGNATURE: Byte = 0x10
     const val ED_CARD_PUBLIC_KEY_ENCODED: Byte = 0x0D
     const val ED_PRIVATE_NONCE: Byte = 0x0E
     const val ED_PUBLIC_NONCE: Byte = 0x0F
 
+    const val ED_CARD_PUBLIC_KEY_LENGTH: Byte = 65
+    const val ED_CARD_PUBLIC_KEY_ENCODED_LENGTH: Byte = 32
+    const val ED_PRIVATE_NONCE_LENGTH: Byte = 32
+    const val ED_PUBLIC_NONCE_LENGTH: Byte = 32
+    const val ED_DATA_SIGNATURE_LENGTH: Byte = 64
+
+    /* Since 3.0 */
+    const val ECDH_NONCE_LENGTH: Byte = 32
+    const val ED_CARD_PRIVATE_KEY_LENGTH: Byte = 32
+}
+
+object ISO7816{
     const val OFFSET_CLA: Byte = 0
     const val OFFSET_INS: Byte = 1
     const val OFFSET_P1: Byte = 2
     const val OFFSET_P2: Byte = 3
     const val OFFSET_LC: Byte = 4
-    const val OFFSET_CDATA: Byte = 5
-    const val OFFSET_EXT_CDATA: Byte = 7
-    const val CLA_ISO7816: Byte = 0
-    const val INS_SELECT: Byte = -92
-    const val INS_EXTERNAL_AUTHENTICATE: Byte = -126
+
+    var CLA_ISO7816: Byte = 0
+
+    var INS_SELECT: Byte = -92
+    var INS_EXTERNAL_AUTHENTICATE: Byte = -126
 }
 
 object CardErrors {

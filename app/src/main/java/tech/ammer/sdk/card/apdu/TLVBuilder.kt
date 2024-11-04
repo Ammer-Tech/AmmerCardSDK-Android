@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 
 
 class TLVBuilder(tag: Byte, length: Byte) {
-    var tlv: ByteBuffer = ByteBuffer.allocate(TLV.HEADER_BYTES_COUNT + length)
+    private var tlv: ByteBuffer = ByteBuffer.allocate(TLV.HEADER_BYTES_COUNT + length)
 
     init {
         tlv.put(tag)

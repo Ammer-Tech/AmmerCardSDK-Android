@@ -1,5 +1,6 @@
 package tech.ammer.sdk.card
 
+import android.app.Application
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.interfaces.ECPrivateKey
 import org.bouncycastle.jce.interfaces.ECPublicKey
@@ -46,13 +47,12 @@ internal class ECController private constructor() {
         val instance: ECController?
             get() {
                 if (controller == null) {
-                    Security.removeProvider("BC")
-                    Security.insertProviderAt(BouncyCastleProvider(), 1)
                     controller = ECController()
                     return controller
                 }
                 return controller
             }
+
     }
 
     init {

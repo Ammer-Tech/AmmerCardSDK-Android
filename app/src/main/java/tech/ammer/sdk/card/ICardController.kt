@@ -1,19 +1,11 @@
 package tech.ammer.sdk.card
 
-import android.app.Activity
 import java.math.BigDecimal
-import java.security.Security
 import java.util.*
 
 interface ICardController {
 
-    fun open(activity: Activity)
-
     fun close()
-
-    fun startListening()
-
-    fun stopListening()
 
     fun getPublicKeyECDSA(pin: String): String?
 
@@ -23,13 +15,16 @@ interface ICardController {
 
     fun getCardUUID(): UUID?
 
-    fun blockCard(pin: String)
+    @SuppressWarnings("It is used only once and has no reverse action.")
+    fun blockGetPrivateKey(pin: String)
 
-    fun signDataEC(payload: String, pin: String): String?
+    fun signDataEC(payload: String, pin: String?): String?
 
-    fun signDataED(publicKeyEDDSA: String, toSign: String, pin: String): String?
+    fun signDataED(toSign: String, publicKeyEDDSA: String?, pin: String?): String?
 
-    fun signDataByNonce(toSign: String, gatewaySignature: String): String?
+    fun signDataByNonceEC(data: String, gatewaySignature: String): String?
+
+    fun signDataByNonceED(data: String, gatewaySignature: String, publicKeyED: ByteArray): String?
 
     fun select(): String
 
@@ -42,31 +37,31 @@ interface ICardController {
     fun countPinAttempts(): Int
 
     fun getIssuer(): Int
+
     fun getSeries(): Int
 
     fun isUnlock(): Boolean
+
     fun unlock(pin: String)
-    fun unlock(pinBytes: ByteArray)
+
     fun lock()
 
-    fun signDataNFC(data: ByteArray, isEDKey: Boolean): String?
+    fun setTransactionInfoForNFCPay(amount: BigDecimal, assetId: String, orderID: UUID, isEDKey: Boolean = false)
 
-    fun setTransactionInfoForNFCPay(amount: BigDecimal, assetId: String, orderID: UUID)
-    fun isNFCPay(): Boolean
+    fun isRealDevice(): Boolean
 
-    /*
-    0 - reject
-    1 - success
+    /**
+     * @param type 0 - reject status, 1 - success status
      */
     fun statusTransaction(type: Int)
 
-    enum class AIDs(val aid: String, val security: Boolean) {
-        AID_1("63:98:96:00:FF:00:01", false),
-        AID_2("70:6f:72:74:65:42:54:43", false),
-        AID_3("A0:00:00:08:82:00:01", false),
-        AID_4("A0:00:00:08:82:00:02", false),
-        AID_6("A0:00:00:08:82:00:03", true),
-        AID_5("A7:77:77:77:77:77:77", false)
+    enum class AIDs(val aid: String, val security: Boolean = false, val realDevice: Boolean = false) {
+        AID_1("A0:00:00:08:82:00:01"),
+        AID_2("A0:00:00:08:82:00:02"),
+        AID_3("A0:00:00:08:82:00:03", security = true),
+        AID_4("A7:77:77:77:77:77:77", realDevice = true),
+        AID_5("63:98:96:00:FF:00:01"),
+        AID_6("70:6f:72:74:65:42:54:43")
     }
 
     enum class ALGORITHMS {

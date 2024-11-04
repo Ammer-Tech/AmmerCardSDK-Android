@@ -274,7 +274,8 @@ object PointEncoder {
         BigInteger.valueOf(8))
 
     fun convert(pubKey: ByteArray?): String {
-        return Hex.toHexString(encodeEd25519(curve.decodePoint(pubKey).multiply(BigInteger.valueOf(8))))
+        val dd = encodeEd25519(curve.decodePoint(pubKey).multiply(BigInteger.valueOf(8)))
+        return Hex.toHexString(dd)
     }
 
     private fun encodeEd25519(point: ECPoint): ByteArray {

@@ -16,60 +16,74 @@ implementation files('sample/libs/card-sdk-#.#.aar')
 implementation 'org.bouncycastle:bcprov-jdk15to18:1.68'
 ```
 
-# Example
+# Start
 
-```kotlin
-package com.example.sample
-
-import tech.ammer.sdk.card.CardControllerListener
-import tech.ammer.sdk.card.ICardController
-
-class MainActivity : Activity(), CardControllerListener {
-    private var cardController: ICardController? = null
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        cardController = CardSdk.getController(this)
-        cardController?.open(this)
-    }
-
-    override fun onCardAttached() {
-        cardController?.select() //Required!!
-        
-
-        cardController?.getCardUUID(pin)
-        cardController?.getIssuer().toString()
-        cardController?.getPublicKeyECDSA(pin)
-        
-        // Only for Card
-        cardController?.doNeedActivation()
-        cardController?.activate(newPin)
-        cardController?.countPinAttempts()
-        cardController?.getPublicKeyEDDSA(pin)
-        cardController?.getPrivateKey(pin)
-        cardController?.blockCard(pin)
-        cardController?.changePin(oldPin, newPin)
-
-        cardController?.isNFCPay()
-        // For NFC
-        cardController?.setTransactionInfoForNFCPay(Amount, symbol, transactionID) // from version 1.4.3 Ammer Wallet and above
-        signDataNFC(toSignEC, false)
-        signDataNFC(toSignED, true)
-        
-        cardController?.lock() // show success on phone
-        cardController?.rejectedTransaction() // show reject on phone
-        // For Card
-        cardController?.signDataEC(payload, pin)
-        cardController?.signDataED(publicKeyEDDSA, payload, pin)
-        cardController?.signDataByNonce(toSign, gatewaySignature)
-    }
-
-    override fun onCardError(code: Short) {
-        when (code) {
-            CardErrors.SW_WRONG_P1P2 -> "Wrong PIN"
-                ....
-        }
+```
+class App : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        CardSDK.start()
     }
 }
+
+class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallback {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        val cardController = CardSdk.getController(this)
+        ... enable NFS read mode
+    }
+    
+    override fun processCommand(byteArray: ByteArray): ByteArray? {
+        return isoDep?.transceive(byteArray)
+    }
+}
+
 ```
+
+# Action
+
+```kotlin
+
+fun onTagDiscovered(tag: Tag) {
+    isoDep = IsoDep.get(tag)
+    isoDep?.connect()
+    isoDep?.timeout = 25000
+
+    cardController?.select() //Required!!
+
+    //About Card
+    val availablePinCount = cardController?.countPinAttempts().toString()
+    val uuid = cardController?.getCardUUID()
+    val cardIssuer = cardController?.getIssuer().toString()
+    val series = cardController?.getSeries().toString()
+
+    val isRealDevice = cardController.isRealDevice()
+
+    // Private information about the card
+    val privateKeyEC = cardController?.getPrivateKey(pin)
+    val publicKeyEC = cardController?.getPublicKeyECDSA(pin)
+    val publicKeyED = cardController?.getPublicKeyEDDSA(pin)
+
+    // Action
+    val signEC = cardController?.signDataEC(dataEC, pin)
+    val signED = cardController?.signDataED(dataED, pubKeyED, pin)
+    val signByNonceEC = cardController?.signDataByNonceEC(dataEC, gatewaySignature)
+    val signByNonceED = cardController?.signDataByNonceED(dataED, gatewaySignatureED, Hex.decode(pubKeyED))
+
+    cardController?.changePin(pin, newPin)
+    cardController?.blockGetPrivateKey(pin) //!!!! It is used only once
+
+    //for the android app Ammer Wallet
+    val pubKeyECF = cardController?.getPublicKeyECDSA(pin)
+    cardController?.setTransactionInfoForNFCPay(amount = BigDecimal("0.0005"), assetId = "AMR", orderID = UUID.randomUUID(), isEDKey = false)
+
+    val sign_EC_NFC = cardController?.signDataEC(toSignEC, null)
+    val sign_ED_NFC = cardController?.signDataED(toSignED, null, null)
+    
+    cardController?.statusTransaction(1)
+}
+
+```
+
+## see sample https://github.com/Ammer-Tech/AmmerCardSDK-Android/blob/master/sample/src/main/java/com/example/sample/MainActivity.kt

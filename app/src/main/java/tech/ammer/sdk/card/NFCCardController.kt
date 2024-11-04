@@ -1,83 +1,74 @@
 package tech.ammer.sdk.card
 
 import android.app.Activity
-import android.nfc.NfcAdapter
-import android.nfc.NfcAdapter.ReaderCallback
-import android.nfc.Tag
 import android.nfc.TagLostException
-import android.nfc.tech.IsoDep
-import android.util.AndroidException
 import android.util.Log
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.internal.asn1.edec.EdECObjectIdentifiers
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.interfaces.ECPublicKey
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec
 import org.bouncycastle.jce.spec.ECParameterSpec
 import org.bouncycastle.jce.spec.ECPublicKeySpec
-import org.bouncycastle.math.ec.ECPoint
 import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
 import org.bouncycastle.util.encoders.Hex
 import tech.ammer.sdk.card.apdu.*
+import tech.ammer.sdk.card.apdu.CardErrors.SIGN_NO_VERIFY
 import tech.ammer.sdk.card.apdu.CardErrors.SW_FILE_NOT_FOUND
 import tech.ammer.sdk.card.apdu.CardErrors.SW_NO_ERROR
-import tech.ammer.sdk.card.apdu.Tags.CLA_ISO7816
-import tech.ammer.sdk.card.apdu.Tags.INS_SELECT
-import tech.ammer.sdk.card.apdu.Tags.VALUE_OFFSET
 import java.math.BigDecimal
 import java.nio.ByteBuffer
 import java.security.KeyFactory
-import java.security.KeyPair
-import java.security.KeyPairGenerator
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.security.Permission
 import java.security.SecureRandom
 import java.security.Signature
 import java.security.interfaces.ECPrivateKey
-import java.security.spec.EncodedKeySpec
-import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.KeyAgreement
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.experimental.and
-import kotlin.system.measureTimeMillis
-import kotlin.time.measureTime
 
 
-class NFCCardController(private val listener: CardControllerListener) : ReaderCallback, ICardController {
+class NFCCardController(private val listener: CardControllerListener) : ICardController {
 
     companion object {
-        private const val CONNECT_TIMEOUT = 25000
         private var parameterSpec: ECNamedCurveParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
 
         val algr = "EC"
+        private val cipherAlg = "AES/CBC/ISO7816-4Padding"
+        private val keyAlg = "ECDH"
 
-        //    private val cipherAlg = "AES/GCM/NoPadding"
-        val cipherAlg = "AES/CBC/ISO7816-4Padding"
-
-        //    private val keyAlg = "DH"
-        val keyAlg = "ECDH"
-    }
-
-    init {
-        createKeys()
+        fun convertError(e: Exception): Short {
+            return when {
+                (e as? TagLostException) != null -> CardErrors.TAG_WAL_LOST
+                (e as? NoSuchAlgorithmException) != null -> CardErrors.OTHER_ALGORITHM
+                e.message?.toShortOrNull() != null -> e.message!!.toShort()
+                else -> -1
+            }
+        }
     }
 
     private var isUnlock: Boolean = false
-    private var isoDep: IsoDep? = null
-    private var nfc: NfcAdapter? = null
     private var activity: Activity? = null
     private var selectedAID: ICardController.AIDs? = null
+
     private val aidsByte = arrayListOf<ByteArray>()
 
     private var cipher: Cipher? = null
     var secretKeySpec: SecretKeySpec? = null
     var secureRandom = SecureRandom()
+
     private var hostPublicKey: ECPublicKey? = null
     private var hostPrivateKey: ECPrivateKey? = null
 
     init {
+        createKeys()
+
         ICardController
             .AIDs
             .values()
@@ -92,26 +83,6 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
             }
     }
 
-    override fun onTagDiscovered(tag: Tag) {
-        isoDep = IsoDep.get(tag)
-        try {
-            isoDep?.connect()
-            isoDep?.timeout = CONNECT_TIMEOUT
-            listener.onCardAttached()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            listener.onCardError(convertError(e))
-        }
-    }
-
-    private fun convertError(e: Exception): Short {
-        return when {
-            (e as? TagLostException) != null -> CardErrors.TAG_WAL_LOST
-            (e as? NoSuchAlgorithmException) != null -> CardErrors.OTHER_ALGORITHM
-            e.message?.toShortOrNull() != null -> e.message!!.toShort()
-            else -> -1
-        }
-    }
 
     private fun pinGetBytes(pin: String): ByteArray {
         val pinBytes = ByteArray(pin.length)
@@ -132,36 +103,13 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return cardKey
     }
 
-    // TODO remove saving reference to activity for `listenForCard` and `stopListening` (find better way to do it)
-    override fun open(activity: Activity) {
-        Log.d("open activity is ", activity.toString())
-        this.activity = activity
-
-        nfc = NfcAdapter.getDefaultAdapter(activity)
-        if (nfc == null) throw Exception("NFC module not found")
-        if (!nfc!!.isEnabled) throw Exception("NFC not enabled")
-        Log.d("NfcAdapter looks ok ", nfc.toString())
-    }
-
-    override fun startListening() {
-        Log.d("NfcAdapter is:", nfc.toString())
-        nfc?.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_A, null)
-    }
-
-    override fun stopListening() {
-        Log.d("NfcAdapter is:", nfc.toString())
-        nfc?.disableReaderMode(activity)
-        createKeys()
-    }
-
     override fun close() {
-        Log.d("close NfcAdapter is ", nfc.toString())
+//        Log.d("close NfcAdapter is ", nfc.toString())
         activity = null
         isUnlock = false
     }
 
     override fun getCardUUID(): UUID {
-
         val command = APDUBuilder.init().setINS(Instructions.INS_GET_CARD_GUID)
         val uuidCardBytes = processCommand("GetMeta", command)
         val buffer = ByteBuffer.allocate(8)
@@ -194,9 +142,10 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
             val _key = publicKeyED()
             val pubKey = ECController.instance?.getEDPublicKeyString(_key)
 
-            Log.d("", ">>> edPublicKeyStringHex: $pubKey")
-            return pubKey
+            Log.d("", ">>> edPublicKeyStringHex: ${Hex.toHexString(_key)}")
+            Log.d("", ">>> edPublicKeyStringHex(Short): $pubKey")
 
+            return pubKey
         } catch (it: Exception) {
             it.printStackTrace()
         }
@@ -224,67 +173,63 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return null
     }
 
-    override fun blockCard(pin: String) {
+    override fun blockGetPrivateKey(pin: String) {
         val _pin = pinGetBytes(pin)
         unlock(_pin)
-        blockGetPrivateKey(pin)
-    }
-
-    private fun blockGetPrivateKey(pin: String) {
-        val pinBytes = pinGetBytes(pin)
-        val _pin = byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes)
-
         val command = APDUBuilder.init().setINS(Instructions.INS_DISABLE_PRIVATE_KEY_EXPORT).setData(_pin)
         processCommand("Block get private key", command)
     }
 
-    private fun verify(data: String, signedData: String): Boolean {
+    private fun verify(data: ByteArray, signedData: String): Boolean {
         val signature = Signature.getInstance("NONEwithECDSA")
         signature.initVerify(publicKeyObj())
-        signature.update(Hex.decode(data))
+        signature.update(data)
+        val isVerify = signature.verify(Hex.decode(signedData))
 
-        return signature.verify(Hex.decode(signedData))
+        return isVerify
     }
 
     private var secureMessage = false
 
     private fun processCommand(commandName: String, command: APDUBuilder): ByteArray {
-        Log.d("Send Command:", "$commandName: ${command.build().toList()}")
+//        Log.d("Send Command:", "$commandName: ${command.build().toList()}")
         if (secureMessage) {
             createSecure()
             val cmdDecode = if (command.data.isEmpty()) command else encodeMsg(command)
-            println("send(decoded): ($commandName): ${Hex.toHexString(cmdDecode.data)}")
-            val response = ResponseAPDU(isoDep!!.transceive(cmdDecode.build()))
-            Log.d("ResultCommand", "response(decoded): $commandName, ${response.sW.toShort()}, ${Hex.toHexString(response.data)}")
+
+            val ss = listener.processCommand(cmdDecode.build())
+            val response = ResponseAPDU(ss)
+//            Log.d("ResultCommand", "response(decoded): $commandName, ${response.sW.toShort()}, ${Hex.toHexString(ss)}")
 
             if (response.sW.toShort() != SW_NO_ERROR) {
-                println("Error: $commandName:${response.sW}")
+//                Log.e("ResultCommand","Error: $commandName:${response.sW}")
                 throw Exception("${response.sW}")
             }
 
             if (response.data.isNotEmpty()) {
                 val _response = decodeMsg(response)
-                Log.d("ResultCommand", "response(encoded): $commandName, ${Hex.toHexString(_response)}")
+
+//                Log.d("ResultCommand", "response(encoded): $commandName, ${Hex.toHexString(_response)}")
                 return if (_response.size > 2)
-                    _response.takeLast(_response.size - 2).toByteArray()
+                    _response.copyOfRange(TLV.OFFSET_VALUE.toInt(), _response.size)
                 else
                     _response
             }
 
             return response.data
         } else {
-            val response = ResponseAPDU(isoDep!!.transceive(command.build()))
+            val response = ResponseAPDU(listener.processCommand(command.build()))
             if (response.sW.toShort() != SW_NO_ERROR) {
                 throw Exception("Error: $commandName:${response.sW}")
             }
             val data = response.data
             Log.d("Result Command:", "$commandName: ${data.toList()}")
-            return if (data.size > 2) data.takeLast(data.size - 2).toByteArray() else data
+            return if (data.size > 2)
+                data.copyOfRange(TLV.OFFSET_VALUE.toInt(), data.size) else data
         }
     }
 
     private fun createSecure() {
-        if (isoDep == null) throw Exception("Tag was lost")
 
         if (hostPublicKey == null || hostPrivateKey == null) {
             createKeys()
@@ -297,7 +242,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
             ).getEncoded(false)
 
             val tlv = TLVBuilder
-                .init(Tags.CARD_PUBLIC_KEY, Tags.CARD_PUBLIC_KEY_MAX_LENGTH.toByte())
+                .init(Tags.CARD_PUBLIC_KEY, Tags.CARD_PUBLIC_KEY_LENGTH)
                 .build(encoded)
 
             val cmd = APDUBuilder
@@ -305,9 +250,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
                 .setINS(Instructions.INS_ECDH_HANDSHAKE)
                 .setData(tlv)
 
-            println("send HANDSHAKE:  ${cmd.data.toList()}")
-            val rsp = ResponseAPDU(isoDep!!.transceive(cmd.build()))
-            println("response HANDSHAKE: ${rsp.sW.toShort()}")
+            val rsp = ResponseAPDU(listener.processCommand(cmd.build()))
             initCipher(rsp)
         }
     }
@@ -329,11 +272,10 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
     }
 
     private fun initCipher(response: ResponseAPDU) {
-        /* Get ECDH public data from card */
         val ecdhCardPublicKeyBytes =
-            Arrays.copyOfRange(response.data, TLV.OFFSET_VALUE.toInt(), TLV.HEADER_BYTES_COUNT + Tags.CARD_PUBLIC_KEY_MAX_LENGTH)
+            Arrays.copyOfRange(response.data, TLV.OFFSET_VALUE.toInt(), TLV.HEADER_BYTES_COUNT + Tags.CARD_PUBLIC_KEY_LENGTH)
         val ecdhNonceBytes =
-            Arrays.copyOfRange(response.data, TLV.OFFSET_VALUE + TLV.HEADER_BYTES_COUNT + Tags.CARD_PUBLIC_KEY_MAX_LENGTH, response.data.size)
+            Arrays.copyOfRange(response.data, TLV.OFFSET_VALUE + TLV.HEADER_BYTES_COUNT + Tags.CARD_PUBLIC_KEY_LENGTH, response.data.size)
 
         val ecSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
 
@@ -385,9 +327,11 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
 
     // TODO check when it needed
     override fun lock() {
-        val command = APDUBuilder.init().setCLA(CLA_ISO7816).setINS(Instructions.INS_LOCK)
-        processCommand("Lock", command)
-        isUnlock = false
+        if (!isRealDevice()) {
+            val command = APDUBuilder.init().setCLA(ISO7816.CLA_ISO7816).setINS(Instructions.INS_LOCK)
+            processCommand("Lock", command)
+            isUnlock = false
+        }
     }
 
     override fun activate(pin: String): Boolean {
@@ -404,12 +348,14 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
     override fun select(): String {
         isUnlock = false
         secureMessage = false
+        cipher = null
+
         aidsByte.forEachIndexed { index, aid ->
             try {
                 val command = APDUBuilder
                     .init()
-                    .setCLA(CLA_ISO7816)
-                    .setINS(INS_SELECT)
+                    .setCLA(ISO7816.CLA_ISO7816)
+                    .setINS(ISO7816.INS_SELECT)
                     .setP1(0x04.toByte())
                     .setP2(0x00.toByte())
                     .setData(aid)
@@ -463,20 +409,39 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return status.last() == State.INITED
     }
 
-    override fun signDataEC(payload: String, pin: String): String? {
-        if (isNFCPay()) return null
-        try {
-            val pinBytes = pinGetBytes(pin)
-            unlock(pinBytes)
-            val apduData = APDUDataBuilder.createSignData(pinBytes, Hex.decode(payload))
-            val apduCommand = APDUBuilder.init().setINS(Instructions.INS_SIGN_DATA).setData(apduData)
+    override fun signDataEC(payload: String, pin: String?): String? {
+        if (pin?.isEmpty() == true && !isRealDevice()) {
+            throw Exception("Without a Pin, only for mobile NFC payments")
+        }
 
-            val fullSignResponse = processCommand("SignData", apduCommand)
+        try {
+            val data = Hex.decode(payload)
+            val _pinData = pinGetBytes(pin ?: "")
+
+            val command = APDUBuilder
+                .init()
+                .setINS(Instructions.INS_SIGN_DATA)
+                .setData(
+                    byteArrayOf(
+                        Tags.CARD_PIN,
+                        _pinData.size.toByte(),
+                        *_pinData,
+                        Tags.DATA_FOR_SIGN,
+                        data.size.toByte(),
+                        *data
+                    )
+                )
+
+            val fullSignResponse = processCommand("SignData", command)
             val hexSign = Hex.toHexString(fullSignResponse)
-            if (!verify(payload, hexSign)) {
-                throw Exception(CardErrors.SIGN_NO_VERIFY.toString())
+            if (!verify(data, hexSign)) {
+                Log.d("VERIFY_EC: ", "verify EC false")
+                throw Exception(SIGN_NO_VERIFY.toString())
+            } else {
+                Log.d("VERIFY_EC: ", "verify EC true")
             }
-            lock()
+
+//                lock()
             return hexSign
         } catch (e: Exception) {
             e.printStackTrace()
@@ -484,32 +449,45 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         }
     }
 
-    override fun signDataED(publicKeyEDDSA: String, toSign: String, _pin: String): String? {
-        if (isNFCPay()) return null
+    override fun signDataED(toSign: String, publicKeyEDDSA: String?, pin: String?): String? {
         try {
+            if (isRealDevice()) {
+                val payload = Hex.decode(toSign)
 
-            val pin = pinGetBytes(_pin)
-            if (!isUnlock) {
-                unlock(pin)
+                val command = APDUBuilder.init().setINS(Instructions.INS_ED_SIGN_DATA).setData(payload)
+                val response = processCommand("SignDataED", command)
+                val signedData = Hex.toHexString(response)
+
+                verifyED(payload, response, publicKeyEDDSA)
+                return signedData
+            } else {
+                val pinBytes = pinGetBytes(pin!!)
+
+                if (!isUnlock) {
+                    unlock(pinBytes)
+                }
+
+                val publicKey = Hex.decode(publicKeyEDDSA!!)
+                val privateNonce = PointEncoder.privateNonce
+                val publicNonce = PointEncoder.getPublicNonce(privateNonce)
+                val payload = Hex.decode(toSign)
+
+                val data = byteArrayOf(
+                    Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes,
+                    Tags.ED_CARD_PUBLIC_KEY_ENCODED, publicKey.size.toByte(), *publicKey,
+                    Tags.ED_PRIVATE_NONCE, privateNonce.size.toByte(), *privateNonce,
+                    Tags.ED_PUBLIC_NONCE, publicNonce.size.toByte(), *publicNonce,
+                    Tags.DATA_FOR_SIGN, payload.size.toByte(), *payload
+                )
+
+                val command = APDUBuilder.init().setINS(Instructions.INS_ED_SIGN_DATA).setData(data)
+                val response = processCommand("SignDataED", command)
+                val signedData = Hex.toHexString(response)
+
+                verifyED(payload, response, publicKeyEDDSA)
+                return signedData
             }
 
-            val publicKey = Hex.decode(publicKeyEDDSA)
-            val privateNonce = PointEncoder.privateNonce
-            val publicNonce = PointEncoder.getPublicNonce(privateNonce)
-            val payload = Hex.decode(toSign)
-
-            val data = byteArrayOf(
-                Tags.CARD_PIN, pin.size.toByte(), *pin,
-                Tags.ED_CARD_PUBLIC_KEY_ENCODED, publicKey.size.toByte(), *publicKey,
-                Tags.ED_PRIVATE_NONCE, privateNonce.size.toByte(), *privateNonce,
-                Tags.ED_PUBLIC_NONCE, publicNonce.size.toByte(), *publicNonce,
-                Tags.DATA_FOR_SIGN, payload.size.toByte(), *payload
-            )
-            val fullInfoSign = signDataED(data)
-            val signedData = Hex.toHexString(fullInfoSign)
-//            KeyStoreHelper.verify(Hex.decode(data), publicKeyObj(), Hex.decode(signedData))
-//            lock()
-            return signedData
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -517,17 +495,24 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return null
     }
 
-    @Throws(Exception::class)
-    private fun signDataED(data: ByteArray): ByteArray {
-        val command = APDUBuilder.init().setINS(Instructions.INS_ED_SIGN_DATA).setData(data)
-        return processCommand("SignDataED", command)
-    }
 
     override fun changePin(oldPin: String, newPin: String) {
-        if (isNFCPay()) return
+        if (isRealDevice()) return
 
-        val data = APDUDataBuilder.createChangePinData(oldPin, newPin)
-        val command = APDUBuilder.init().setINS(Instructions.INS_CHANGE_PIN).setData(data)
+        val command = APDUBuilder
+            .init()
+            .setINS(Instructions.INS_CHANGE_PIN)
+            .setData(
+                byteArrayOf(
+                    Tags.CARD_PIN,
+                    oldPin.length.toByte(),
+                    *pinGetBytes(oldPin),
+                    Tags.CARD_PIN,
+                    newPin.length.toByte(),
+                    *pinGetBytes(newPin)
+                )
+            )
+
         processCommand("ChangePin", command)
     }
 
@@ -538,7 +523,7 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
     }
 
     override fun countPinAttempts(): Int {
-        if (isNFCPay())
+        if (isRealDevice())
             return 0
         try {
             val command = APDUBuilder.init().setINS(Instructions.INS_GET_PIN_RETRIES)
@@ -551,16 +536,16 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return -1
     }
 
-    override fun signDataNFC(data: ByteArray, isEDKey: Boolean): String? {
+    private fun signDataNFC(apdu: APDUBuilder, isEDKey: Boolean): String? {
         kotlin.runCatching {
-            val command = APDUBuilder.init().setINS(Instructions.INS_SIGN_DATA).setData(data)
+            val command = APDUBuilder.init().setINS(Instructions.INS_SIGN_DATA).setData(apdu.data)
 
             val fullInfoSign = processCommand("SignDataNFC:", command)
             val hSign = Hex.toHexString(fullInfoSign)
             if (isEDKey)
-                verifyED(data, fullInfoSign)
+                verifyED(apdu.data, fullInfoSign)
             else
-                verify(Hex.toHexString(data), hSign)
+                verify(apdu.data, hSign)
 
             lock()
 
@@ -571,27 +556,23 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return null
     }
 
-    override fun setTransactionInfoForNFCPay(amount: BigDecimal, assetId: String, orderID: UUID) {
-        if (isNFCPay()) {
+    override fun setTransactionInfoForNFCPay(amount: BigDecimal, assetId: String, orderID: UUID, isEDKey: Boolean) {
+        if (isRealDevice()) {
             kotlin.runCatching {
                 val assetIdBytes = assetId.toByteArray()
                 val orderIdBytes = convertUUIDToBytes(UUID.fromString(orderID.toString()))
                 val amountB = amount.toPlainString().toByteArray()
+                val isEdKeyBytes = isEDKey.toString().toByteArray()
 
                 val data = APDUBuilder
                     .init()
                     .setINS(Instructions.INS_TRANSACTION_INFO)
                     .setData(
                         byteArrayOf(
-                            Tags.ASSET_ID,
-                            assetIdBytes.size.toByte(),
-                            *assetIdBytes,
-                            Tags.AMOUNT_TX,
-                            amountB.size.toByte(),
-                            *amountB,
-                            Tags.ORDER_ID,
-                            orderIdBytes.size.toByte(),
-                            *orderIdBytes
+                            Tags.ASSET_ID, assetIdBytes.size.toByte(), *assetIdBytes,
+                            Tags.AMOUNT_TX, amountB.size.toByte(), *amountB,
+                            Tags.ORDER_ID, orderIdBytes.size.toByte(), *orderIdBytes,
+                            Tags.IS_ED_KEY, isEdKeyBytes.size.toByte(), *isEdKeyBytes,
                         )
                     )
 
@@ -602,8 +583,8 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         }
     }
 
-    override fun isNFCPay(): Boolean {
-        return selectedAID == ICardController.AIDs.AID_5
+    override fun isRealDevice(): Boolean {
+        return selectedAID?.realDevice == true
     }
 
     override fun statusTransaction(type: Int) {
@@ -619,17 +600,33 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         }
     }
 
-    override fun signDataByNonce(toSign: String, gatewaySignature: String): String? {
-        if (isNFCPay()) return null
-        try {
-            val dataTLV = APDUDataBuilder.createSignByNonceData(Hex.decode(toSign), Hex.decode(gatewaySignature))
-            val command = APDUBuilder.init().setCLA(CLA_ISO7816).setINS(Instructions.INS_SIGN_PROCESSING_DATA).setData(dataTLV)
-            var signedDataArray = processCommand("SignProcessingDataNoPin", command)
-            signedDataArray = signedDataArray.copyOfRange(VALUE_OFFSET.toInt(), signedDataArray.size)
+    override fun signDataByNonceEC(data: String, gatewaySignature: String): String? {
+        if (isRealDevice())
+            return null
 
-//            if (!verify(Hex.toHexString(dataTLV), Hex.toHexString(signedDataArray))) {
-//                listener.onCardError(ERROR_CODES.SIGN_NO_VERIFY)
-//            }
+        try {
+            val toSign = Hex.decode(data)
+            val _gatewaySignature = Hex.decode(gatewaySignature)
+
+            val tlvSign = TLVBuilder.init(Tags.DATA_FOR_SIGN, Tags.DATA_FOR_SIGN_LENGTH).build(toSign);
+            val tlvSignature = TLVBuilder.init(Tags.DATA_SIGNATURE, _gatewaySignature.size.toByte()).build(_gatewaySignature)
+
+            val buffer = ByteBuffer.allocate(tlvSign.size + tlvSignature.size)
+            buffer.put(tlvSign)
+            buffer.put(tlvSignature)
+
+            val command = APDUBuilder
+                .init()
+                .setINS(Instructions.INS_SIGN_PROCESSING_DATA)
+                .setData(buffer.array())
+
+            val signedDataArray = processCommand("SignProcessingDataNonceEC", command)
+            if (!verify(toSign, Hex.toHexString(signedDataArray))) {
+                Log.d("Verify", "Verify nonce false")
+                listener.onCardError(SIGN_NO_VERIFY)
+            } else {
+                Log.d("Verify", "Verify nonce true")
+            }
             return Hex.toHexString(signedDataArray)
         } catch (e: Throwable) {
             e.printStackTrace()
@@ -637,23 +634,53 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         }
     }
 
-    override fun unlock(pin: String) {
-//        if (!isUnlock) {
-//            if (!isNFCPay()) {
-////                val time = measureTimeMillis {
-//                unlock(pinGetBytes(pin))
-////                }
-////                Log.d("timeUnlcok", time.toString())
-//            }
-//            isUnlock = true
-//        }
+    override fun signDataByNonceED(data: String, gatewaySignature: String, publicKeyED: ByteArray): String? {
+        if (isRealDevice())
+            return null
+        try {
+
+            val dataSignature = Hex.decode(data)
+            val payload = Hex.decode(gatewaySignature)
+
+            val privateNonce: ByteArray = PointEncoder.privateNonce
+            val publicNonce: ByteArray = PointEncoder.getPublicNonce(privateNonce)
+
+            val dataBuffer = ByteBuffer.allocate(
+                TLV.HEADER_BYTES_COUNT + Tags.ED_CARD_PUBLIC_KEY_ENCODED_LENGTH +
+                        TLV.HEADER_BYTES_COUNT + Tags.ED_PRIVATE_NONCE_LENGTH +
+                        TLV.HEADER_BYTES_COUNT + Tags.ED_PUBLIC_NONCE_LENGTH +
+                        TLV.HEADER_BYTES_COUNT + Tags.DATA_FOR_SIGN_LENGTH +
+                        TLV.HEADER_BYTES_COUNT + payload.size
+            )
+
+            dataBuffer.put(TLVBuilder.init(Tags.ED_CARD_PUBLIC_KEY_ENCODED, Tags.ED_CARD_PUBLIC_KEY_ENCODED_LENGTH).build(publicKeyED))
+            dataBuffer.put(TLVBuilder.init(Tags.ED_PRIVATE_NONCE, Tags.ED_PRIVATE_NONCE_LENGTH).build(privateNonce))
+            dataBuffer.put(TLVBuilder.init(Tags.ED_PUBLIC_NONCE, Tags.ED_PUBLIC_NONCE_LENGTH).build(publicNonce))
+            dataBuffer.put(TLVBuilder.init(Tags.DATA_FOR_SIGN, Tags.DATA_FOR_SIGN_LENGTH).build(dataSignature))
+            dataBuffer.put(TLVBuilder.init(Tags.DATA_SIGNATURE, payload.size.toByte()).build(payload))
+
+            val cmd = APDUBuilder.init().setINS(Instructions.INS_ED_SIGN_PROCESSING_DATA).setData(dataBuffer.array())
+
+            val signedDataArray = processCommand("SignProcessingDataNonceED", cmd)
+
+            return Hex.toHexString(signedDataArray)
+        } catch (e: Throwable) {
+            e.printStackTrace()
+
+            return null
+        }
     }
 
-    override fun unlock(pinBytes: ByteArray) {
+    override fun unlock(pin: String) {
+        unlock(pinGetBytes(pin))
+    }
+
+    private fun unlock(pinBytes: ByteArray) {
         if (!isUnlock) {
-            if (!isNFCPay()) {
+            if (!isRealDevice()) {
                 secureMessage = selectedAID?.security ?: false
-                val command =APDUBuilder.init().setINS(Instructions.INS_UNLOCK).setData(byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes))
+                val command =
+                    APDUBuilder.init().setINS(Instructions.INS_UNLOCK).setData(byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes))
                 processCommand("Unlock", command)
             }
             isUnlock = true
@@ -664,39 +691,16 @@ class NFCCardController(private val listener: CardControllerListener) : ReaderCa
         return isUnlock
     }
 
-    private fun convertPrivateKeyToIOSStyle(private: String?): String? {
-        private ?: return null
-        val keypair = recoveryAndroid(private)
-        return (keypair.private as ECPrivateKey).s.toString(16)
-    }
-
-    private fun recoveryAndroid(priv: String): KeyPair {
-        val keyFactory = KeyFactory.getInstance("EC", "BC")
-        val privateKeySpec: EncodedKeySpec = PKCS8EncodedKeySpec(Hex.decode(priv))
-        val privateKey = keyFactory.generatePrivate(privateKeySpec)
-
-        val ecSpec: ECParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
-        val q: ECPoint = ecSpec.g.multiply((privateKey as org.bouncycastle.jce.interfaces.ECPrivateKey).d)
-
-        val pubSpec = ECPublicKeySpec(q, ecSpec)
-        val publicKeyGenerated = keyFactory.generatePublic(pubSpec) as java.security.interfaces.ECPublicKey
-
-        return KeyPair(publicKeyGenerated, privateKey)
-    }
-
-    private fun convertBytesToUUID(bytes: ByteArray): UUID {
-        val byteBuffer: ByteBuffer = ByteBuffer.wrap(bytes)
-        val high: Long = byteBuffer.long
-        val low: Long = byteBuffer.long
-        return UUID(high, low)
-    }
-
-    private fun verifyED(data: ByteArray, signedData: ByteArray) {
+    private fun verifyED(data: ByteArray, signedData: ByteArray, publicKey: String? = null) {
         try {
+            val keyFactory = KeyFactory.getInstance("Ed25519", "BC")
+            val subjectPublicKeyInfo = SubjectPublicKeyInfo(AlgorithmIdentifier(EdECObjectIdentifiers.id_Ed25519), Hex.decode(publicKey))
+            val _publicKey = keyFactory.generatePublic(X509EncodedKeySpec(subjectPublicKeyInfo.getEncoded()))
+
             val signature = Signature.getInstance("Ed25519", "BC")
-            signature.initVerify(publicKeyObj())
+            signature.initVerify(_publicKey)
             signature.update(data)
-            Log.d("VERIFY_ED: ", signature.verify(signedData).toString())
+            Log.d("VERIFY_ED: ", "Verify ed " + signature.verify(signedData).toString())
         } catch (e: Throwable) {
             e.printStackTrace()
             Log.d("VERIFY_ED", "No verify ed")

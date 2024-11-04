@@ -3,17 +3,18 @@ package com.example.sample
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.nfc.NfcAdapter
+import android.nfc.Tag
+import android.nfc.tech.IsoDep
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import android.widget.TextView
-import androidx.annotation.WorkerThread
 import com.google.android.material.button.MaterialButton
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import tech.ammer.sdk.card.CardControllerListener
 import tech.ammer.sdk.card.CardSDK
 import tech.ammer.sdk.card.ICardController
+import tech.ammer.sdk.card.NFCCardController
 import tech.ammer.sdk.card.apdu.CardErrors.SIGN_NO_VERIFY
 import tech.ammer.sdk.card.apdu.CardErrors.SW_CONDITIONS_NOT_SATISFIED
 import tech.ammer.sdk.card.apdu.CardErrors.SW_FILE_NOT_FOUND
@@ -22,172 +23,130 @@ import tech.ammer.sdk.card.apdu.CardErrors.SW_WRONG_DATA
 import tech.ammer.sdk.card.apdu.CardErrors.SW_WRONG_P1P2
 import tech.ammer.sdk.card.apdu.CardErrors.TAG_WAL_LOST
 import java.math.BigDecimal
-import java.security.Security
 import java.util.UUID
-import kotlin.system.measureTimeMillis
 
-class MainActivity : Activity(), CardControllerListener {
+class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallback {
 
-
-    /*
-    NoSecure
-    Cold,Hot
-    unlock - 49, 47
-    sign - 179, 152
-
-    Secure v.3
-    Cold,Hot
-    unlock - 833, 151
-    sign - 442, 215
-
-    Secure v.4
-    Cold,Hot
-    unlock - 63, 151
-    sign - 544, 215
-
-    Secure v.2
-    Cold,Hot
-    unlock - 871, 159
-    sign - 445, 187
-     */
+    private var isoDep: IsoDep? = null
     private var cardController: ICardController? = null
 
     private val pin = "123456"
-    //    private val pin = "012345"
 
     private var title: TextView? = null
-    private val toSignEC = "3a5cb9040a7088ec25fb4c1a8c18ce29882ea307df0201ba25ac52206ac77a5f"
-    private val toSignED = "035c96b5f300f6ab60909a85fc124d24ec32a82e6187f6584c23cb1d3a80c50a"
+    private val toSignEC = "5e38ecc5990bdb21fb9a733a94967dd722d59bcc1d23ebbccdbdf5bf704d69e2"
+    private val toSignED = "891d0d2f431f7b437ac603f1b76954817f499ddd6bb8b85f5c64a6095b2c82a5"
+    private val toSignEDNonce = "d40d0c3b7b691babe3fee25655e4e78d6149440d61e6009a55fef39952bb5f1c"
+
     private val gatewaySignature =
-        "3045022100c595b7b18c73a28024d3bf7c21e1880203ca6c760d06069feb3bafa795365952022048d5dd965f6a326bc7b38a26324efb6c1d9293597c5dcbf293dd76d9bcf664f0"
+        "3045022079ee236f02a6f83965093ecae1562f22990e812738c3461c987094857aa010be022100e8cb0737db78c76aaa832af63bb4fda7f1c523202e2851fe9aa7510c72610a31"
+    private val gatewaySignatureED =
+        "304402207e3ce81f3e3abf68e959ef7be77f985c2dea30a68a154d13027aaddcd258558102206b22058e3a276330d8393e8af26c364cc9b9788b5e60457798b62d24676124f5"
+
+    private val resultMap = linkedMapOf<String, String?>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Security.removeProvider("BC")
-        Security.insertProviderAt(BouncyCastleProvider(), 1)
-
         setContentView(R.layout.activity_main)
         title = findViewById(R.id.title)
 
         cardController = CardSDK.getController(this)
-        kotlin.runCatching {
-            cardController?.open(this)
-        }.onFailure {
-            startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS))
+
+        val nfc = NfcAdapter.getDefaultAdapter(this)
+        if (!nfc.isEnabled) {
+            startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
         }
 
         findViewById<MaterialButton>(R.id.start).setOnClickListener {
-            cardController?.startListening()
+            nfc?.enableReaderMode(this, this, NfcAdapter.FLAG_READER_NFC_A, null)
             title?.text = "Started"
         }
 
         findViewById<MaterialButton>(R.id.stop).setOnClickListener {
-            cardController?.stopListening()
+            nfc?.disableReaderMode(this)
             title?.text = "Stopped"
         }
     }
 
-    private var aid: String? = null
-    private var needActivation: Boolean? = null
-    private var availablePinCount: String? = null
-    private var signEC: String? = null
-    private var signED: String? = null
-    private var signByNonceEC: String? = null
-    private var pubKey: String? = null
-    private var uuid: UUID? = null
-    private var cardIssuer: String? = null
-    private var series: String? = null
-    private var pvkKey: String? = null
-    private var pubKeyED: String? = null
+    private fun doWork() {
+        println("start")
+        val aid = cardController?.select()
+        val needActivation = cardController?.doNeedActivation()
 
-    //1472
-    // 432
-
-    @SuppressLint("SetTextI18n")
-    @WorkerThread
-    override fun onCardAttached() {
-        clearAllValue()
-        val time = measureTimeMillis {
-            aid = cardController?.select() //Required!!
-
-//        runOnUiThread {
-//            title?.text = "Processing.."
-//        }
-
-            needActivation = cardController?.doNeedActivation()
-//            if (needActivation == true) {
-//                runOnUiThread {
-//                    title?.text = "Activation..."
-//                }
-//                cardController?.activate(pin)
-//            }
-
-            availablePinCount = cardController?.countPinAttempts().toString()
-            uuid = cardController?.getCardUUID()
-            cardIssuer = cardController?.getIssuer().toString()
-//            series = cardController?.getSeries().toString()
-
-            pubKey = cardController?.getPublicKeyECDSA(pin)
-//            pvkKey = cardController?.getPrivateKey(pin)
-//            pubKeyED = cardController?.getPublicKeyEDDSA(pin)
-            if (cardController?.isNFCPay() == true) {
-                val _time = measureTimeMillis {
-                    cardController?.setTransactionInfoForNFCPay(BigDecimal("0.000001"), "AMR", UUID.randomUUID())
-                    signEC = cardController?.signDataNFC(Hex.decode(toSignEC), false)
-                }
-                Log.d("timeSignNFC", _time.toString())
-                signED = cardController?.signDataNFC(Hex.decode(toSignED), true)
-//            cardController?.lock() // show success on phone
-                cardController?.statusTransaction(0) // show reject on phone
-            } else {
-//            val newPin = "123456"
-//            cardController?.changePin(pin, newPin)
-                signEC = cardController?.signDataEC(toSignEC, pin)
-//                signED = pubKeyED?.let { cardController?.signDataED(it, toSignED, pin) }
-
-//            signByNonceEC = cardController?.signDataByNonce(toSignEC, gatewaySignature)
+        if (needActivation == true) {
+            runOnUiThread {
+                title?.text = "Activation..."
             }
+            cardController?.activate(pin)
         }
 
-        Log.d("timeSignSCard", time.toString())
+        val availablePinCount = cardController?.countPinAttempts().toString()
+        val uuid = cardController?.getCardUUID()
+        val cardIssuer = cardController?.getIssuer().toString()
+        val series = cardController?.getSeries().toString()
+        val pubKey = cardController?.getPublicKeyECDSA(pin)
+        val pubKeyED = cardController?.getPublicKeyEDDSA(pin)
 
-        setTextInfo()
+        resultMap["AID"] = aid.toString()
+        resultMap["NeedActivation"] = needActivation.toString()
+        resultMap["AvailablePinCount"] = availablePinCount
+        resultMap["UUID"] = uuid.toString()
+        resultMap["CardIssuer"] = cardIssuer
+        resultMap["Series"] = series
+        resultMap["EC_PublicKey"] = pubKey.toString()
+
+        val isRealDevice = cardController?.isRealDevice() ?: false
+        if (isRealDevice) {
+            cardController?.setTransactionInfoForNFCPay(amount = BigDecimal("0.0005"), assetId = "AMR", orderID = UUID.randomUUID(), isEDKey = false)
+            val sign_EC_NFC = cardController?.signDataEC(toSignEC, null)
+            val sign_ED_NFC = cardController?.signDataED(toSignED, null, null)
+
+            resultMap["EC_Sign_NFC"] = sign_EC_NFC.toString()
+            resultMap["ED_Sign_NFC"] = sign_ED_NFC.toString()
+        } else {
+            val pvkKey = cardController?.getPrivateKey(pin)
+            val signEC = cardController?.signDataEC(toSignEC, pin)
+            val signED = cardController?.signDataED(toSignED, pubKeyED, pin)
+            val signByNonceEC = cardController?.signDataByNonceEC(toSignEC, gatewaySignature)
+            val signByNonceED = cardController?.signDataByNonceED(toSignEDNonce, gatewaySignatureED, Hex.decode(pubKeyED))
+
+            resultMap["EC_PrivateKey"] = pvkKey.toString()
+            resultMap["ED_PublicKey"] = pubKeyED.toString()
+            resultMap["EC_Sign"] = signEC.toString()
+            resultMap["ED_Sign"] = signED.toString()
+            resultMap["EC_SignByNonce"] = signByNonceEC.toString()
+            resultMap["ED_SignByNonce"] = signByNonceED.toString()
+        }
+
+        if (isRealDevice) {
+            cardController?.statusTransaction(1) // show result status on phone (Only Phone)
+        }
+
+//        val newPin = "123456"
+//        cardController?.changePin(pin, newPin)
+//        cardController?.blockGetPrivateKey(pin) //!!!! It is used only once
+
+
+        updateTextView()
     }
 
     private fun clearAllValue() {
-        aid = null
-        needActivation = null
-        availablePinCount = null
-        signEC = null
-        signED = null
-        signByNonceEC = null
-        pubKey = null
-        uuid = null
-        cardIssuer = null
-        pvkKey = null
-        pubKeyED = null
+        resultMap.clear()
     }
 
     @SuppressLint("SetTextI18n")
-    private fun setTextInfo() {
+    private fun updateTextView() {
         runOnUiThread {
-            title?.text = "aid:  $aid\n\n" +
-                    "uuid: $uuid\n\n" +
-                    "issuer: $cardIssuer\n\n" +
-                    "series: $series\n\n" +
-                    "countPinAttempts: $availablePinCount\n\n" +
-                    "ecPubKey: $pubKey\n\n" +
-                    "edPubKey: ${pubKeyED ?: "Not supported"}\n\n" +
-                    "prvKey: $pvkKey\n\n" +
-                    "signEC: $signEC\n\n" +
-                    "signED: ${signED ?: "Not supported"}\n\n" +
-                    "signNonceEC: ${signByNonceEC ?: "Not supported"}\n\n"
+            title?.text = resultMap.map { "${it.key}:  ${it.value}\n\n" }.joinToString("\n")
         }
+    }
+
+    override fun processCommand(byteArray: ByteArray): ByteArray? {
+        return isoDep?.transceive(byteArray)
     }
 
     @SuppressLint("SetTextI18n")
     override fun onCardError(code: Short) {
-        setTextInfo()
+        updateTextView()
         val message = when (code) {
             SW_CONDITIONS_NOT_SATISFIED -> "Condition not satisfied ${cardController?.isUnlock()} ,${cardController?.countPinAttempts()}"
             SW_WRONG_DATA -> "Bad sign data"
@@ -202,4 +161,24 @@ class MainActivity : Activity(), CardControllerListener {
             findViewById<TextView>(R.id.title).append("\nError: $message \n")
         }
     }
+
+    override fun onTagDiscovered(tag: Tag) {
+        isoDep = IsoDep.get(tag)
+        try {
+            isoDep?.connect()
+            isoDep?.timeout = 25000
+
+            clearAllValue()
+            runOnUiThread {
+                title?.text = "Processing.."
+            }
+
+            doWork()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            onCardError(NFCCardController.convertError(e))
+        }
+    }
+
+    val CONNECT_TIMEOUT = 25000
 }
