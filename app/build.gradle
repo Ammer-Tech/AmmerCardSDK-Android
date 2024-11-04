@@ -9,6 +9,7 @@ android {
     defaultConfig {
         minSdk 25
         targetSdk = 34
+        versionName = "1.5"
     }
 
     buildTypes {
@@ -21,7 +22,7 @@ android {
     libraryVariants.configureEach { variant ->
         variant.outputs.configureEach { output ->
             if (outputFile != null && outputFileName.endsWith('.aar')) {
-                outputFileName = "card-sdk-${defaultConfig.versionName}.aar"
+                outputFileName = "card-sdk-${variant.versionName}.aar"
             }
         }
     }

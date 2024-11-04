@@ -90,7 +90,7 @@ internal object Tags {
     const val ED_CARD_PRIVATE_KEY_LENGTH: Byte = 32
 }
 
-object ISO7816{
+internal object ISO7816{
     const val OFFSET_CLA: Byte = 0
     const val OFFSET_INS: Byte = 1
     const val OFFSET_P1: Byte = 2

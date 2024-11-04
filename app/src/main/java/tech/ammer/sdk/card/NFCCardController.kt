@@ -325,7 +325,6 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
         return cmd
     }
 
-    // TODO check when it needed
     override fun lock() {
         if (!isRealDevice()) {
             val command = APDUBuilder.init().setCLA(ISO7816.CLA_ISO7816).setINS(Instructions.INS_LOCK)
@@ -342,12 +341,11 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
 
         Log.d("activate", command.toString())
         processCommand("Activate", command)
-        return true // TODO FIX ME
+        return true
     }
 
     override fun select(): String {
         isUnlock = false
-        secureMessage = false
         cipher = null
 
         aidsByte.forEachIndexed { index, aid ->
@@ -363,7 +361,6 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
                 processCommand("Select", command)
                 return Hex.toHexString(aid).also { result ->
                     selectedAID = ICardController.AIDs.values().find { it.aid.replace(":", "") == result.uppercase() }
-//                    secureMessage = selectedAID?.security ?: false
                 }
             } catch (e: Throwable) {
 //                e.printStackTrace()
