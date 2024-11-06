@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         minSdk 25
-        targetSdk = 34
-        versionName = "1.5"
+        //noinspection EditedTargetSdkVersion
+        targetSdk = 35
     }
 
     buildTypes {
@@ -19,13 +19,13 @@ android {
         }
     }
 
-    libraryVariants.configureEach { variant ->
-        variant.outputs.configureEach { output ->
-            if (outputFile != null && outputFileName.endsWith('.aar')) {
-                outputFileName = "card-sdk-${variant.versionName}.aar"
-            }
-        }
-    }
+//    libraryVariants.configureEach { variant ->
+//        variant.outputs.configureEach { output ->
+//            if (outputFile != null && outputFileName.endsWith('.aar')) {
+//                outputFileName = "card-sdk-${variant.versionName}.aar"
+//            }
+//        }
+//    }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_16
@@ -36,23 +36,27 @@ android {
         jvmTarget = '16'
     }
     namespace 'tech.ammer.sdk.card'
+
+//    publishing {
+//        repositories {
+//            maven {
+//                name = "Ammer-Tech"
+//                url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
+//                credentials {
+//                    username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+//                    password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+//                }
+//            }
+//        }
+//        publications {
+//            gpr(MavenPublication) {
+//                from(components.java)
+//            }
+//        }
+//    }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.core:core-ktx:1.15.0'
     implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
 }
-
-
-tasks.register('deleteJar', Delete) {
-    delete 'libs/myLib.jar'
-}
-
-tasks.register('createJar', Copy) {
-    from('build/intermediates/compile_library_classes_jar/release/')
-    into('/Users/dimak/AndroidStudioProjects/android-card-sdk/sample/libs/')
-    include('classes.jar')
-    rename('classes.jar', 'card-sdk-lib.jar')
-}
-
-createJar.dependsOn(deleteJar, build)

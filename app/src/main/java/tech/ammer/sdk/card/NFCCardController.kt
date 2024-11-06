@@ -54,7 +54,7 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
     }
 
     private var isUnlock: Boolean = false
-    private var activity: Activity? = null
+
     private var selectedAID: ICardController.AIDs? = null
 
     private val aidsByte = arrayListOf<ByteArray>()
@@ -105,7 +105,6 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
 
     override fun close() {
 //        Log.d("close NfcAdapter is ", nfc.toString())
-        activity = null
         isUnlock = false
     }
 
@@ -189,27 +188,26 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
         return isVerify
     }
 
-    private var secureMessage = false
 
     private fun processCommand(commandName: String, command: APDUBuilder): ByteArray {
-//        Log.d("Send Command:", "$commandName: ${command.build().toList()}")
-        if (secureMessage) {
+        Log.d("Send Command:", "$commandName: ${command.build().toList()}")
+        if (selectedAID?.security == true && commandName != "Select") {
             createSecure()
             val cmdDecode = if (command.data.isEmpty()) command else encodeMsg(command)
 
             val ss = listener.processCommand(cmdDecode.build())
             val response = ResponseAPDU(ss)
-//            Log.d("ResultCommand", "response(decoded): $commandName, ${response.sW.toShort()}, ${Hex.toHexString(ss)}")
+            Log.d("ResultCommand", "response(decoded): $commandName, ${response.sW.toShort()}, ${Hex.toHexString(ss)}")
 
             if (response.sW.toShort() != SW_NO_ERROR) {
-//                Log.e("ResultCommand","Error: $commandName:${response.sW}")
+                Log.e("ResultCommand", "Error: $commandName:${response.sW}")
                 throw Exception("${response.sW}")
             }
 
             if (response.data.isNotEmpty()) {
                 val _response = decodeMsg(response)
 
-//                Log.d("ResultCommand", "response(encoded): $commandName, ${Hex.toHexString(_response)}")
+                Log.d("ResultCommand", "response(encoded): $commandName, ${Hex.toHexString(_response)}")
                 return if (_response.size > 2)
                     _response.copyOfRange(TLV.OFFSET_VALUE.toInt(), _response.size)
                 else
@@ -327,8 +325,16 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
 
     override fun lock() {
         if (!isRealDevice()) {
-            val command = APDUBuilder.init().setCLA(ISO7816.CLA_ISO7816).setINS(Instructions.INS_LOCK)
-            processCommand("Lock", command)
+            val command = APDUBuilder
+                .init()
+                .setCLA(ISO7816.CLA_ISO7816)
+                .setINS(Instructions.INS_LOCK)
+
+            kotlin.runCatching {
+                processCommand("Lock", command)
+            }.onFailure {
+                it.printStackTrace()
+            }
             isUnlock = false
         }
     }
@@ -438,7 +444,6 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
                 Log.d("VERIFY_EC: ", "verify EC true")
             }
 
-//                lock()
             return hexSign
         } catch (e: Exception) {
             e.printStackTrace()
@@ -533,25 +538,6 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
         return -1
     }
 
-    private fun signDataNFC(apdu: APDUBuilder, isEDKey: Boolean): String? {
-        kotlin.runCatching {
-            val command = APDUBuilder.init().setINS(Instructions.INS_SIGN_DATA).setData(apdu.data)
-
-            val fullInfoSign = processCommand("SignDataNFC:", command)
-            val hSign = Hex.toHexString(fullInfoSign)
-            if (isEDKey)
-                verifyED(apdu.data, fullInfoSign)
-            else
-                verify(apdu.data, hSign)
-
-            lock()
-
-            return hSign
-        }.onFailure {
-            it.printStackTrace()
-        }
-        return null
-    }
 
     override fun setTransactionInfoForNFCPay(amount: BigDecimal, assetId: String, orderID: UUID, isEDKey: Boolean) {
         if (isRealDevice()) {
@@ -618,12 +604,6 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
                 .setData(buffer.array())
 
             val signedDataArray = processCommand("SignProcessingDataNonceEC", command)
-            if (!verify(toSign, Hex.toHexString(signedDataArray))) {
-                Log.d("Verify", "Verify nonce false")
-                listener.onCardError(SIGN_NO_VERIFY)
-            } else {
-                Log.d("Verify", "Verify nonce true")
-            }
             return Hex.toHexString(signedDataArray)
         } catch (e: Throwable) {
             e.printStackTrace()
@@ -675,7 +655,6 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
     private fun unlock(pinBytes: ByteArray) {
         if (!isUnlock) {
             if (!isRealDevice()) {
-                secureMessage = selectedAID?.security ?: false
                 val command =
                     APDUBuilder.init().setINS(Instructions.INS_UNLOCK).setData(byteArrayOf(Tags.CARD_PIN, pinBytes.size.toByte(), *pinBytes))
                 processCommand("Unlock", command)

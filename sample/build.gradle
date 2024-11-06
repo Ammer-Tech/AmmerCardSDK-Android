@@ -4,14 +4,15 @@ plugins {
 }
 
 android {
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.example.sample"
         minSdk 25
         versionCode 2
         versionName "1.2"
-        targetSdk = 34
+        //noinspection EditedTargetSdkVersion
+        targetSdk = 35
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

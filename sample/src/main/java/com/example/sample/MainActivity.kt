@@ -70,8 +70,8 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
     private fun doWork() {
         println("start")
         val aid = cardController?.select()
-        val needActivation = cardController?.doNeedActivation()
 
+        val needActivation = cardController?.doNeedActivation()
         if (needActivation == true) {
             runOnUiThread {
                 title?.text = "Activation..."
