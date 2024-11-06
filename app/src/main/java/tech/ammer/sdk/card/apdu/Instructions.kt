@@ -29,11 +29,6 @@ internal object Instructions {
     const val INS_ALGORITHM_SIGN: Byte = 0x22
     const val INS_TRANSACTION_INFO: Byte = 0x23
 
-    const val ERROR_DEBIT_RESPONSE = 0x11.toByte()
-    const val ERROR_AUTH_RESPONSE = 0x13.toByte()
-    const val ERROR_AUTH_RESPONSE2 = 0x15.toByte()
-    const val ERROR_SUCCESS_RESPONSE = 0x16.toByte()
-
     const val INS_ECDH_HANDSHAKE: Byte = 0x16
 }
 
@@ -104,6 +99,10 @@ internal object ISO7816{
 }
 
 object CardErrors {
+    const val ERROR_DEBIT_RESPONSE = 0x11.toByte()
+    const val ERROR_AUTH_RESPONSE = 0x13.toByte()
+    const val ERROR_AUTH_RESPONSE2 = 0x15.toByte()
+    const val ERROR_SUCCESS_RESPONSE = 0x16.toByte()
     const val SW_NO_ERROR: Short = -28672
     const val SW_BYTES_REMAINING_00: Short = 24832
     const val SW_WRONG_LENGTH: Short = 26368

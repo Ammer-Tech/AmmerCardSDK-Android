@@ -1,7 +1,7 @@
 package tech.ammer.sdk.card
 
 import java.math.BigDecimal
-import java.util.*
+import java.util.UUID
 
 interface ICardController {
 
@@ -28,7 +28,7 @@ interface ICardController {
 
     fun select(): String
 
-    fun doNeedActivation(): Boolean
+    fun needActivation(): Boolean
 
     fun activate(pin: String): Boolean
 
@@ -46,6 +46,8 @@ interface ICardController {
 
     fun lock()
 
+    fun haveTon(): Boolean
+
     fun setTransactionInfoForNFCPay(amount: BigDecimal, assetId: String, orderID: UUID, isEDKey: Boolean = false)
 
     fun isRealDevice(): Boolean
@@ -55,13 +57,14 @@ interface ICardController {
      */
     fun statusTransaction(type: Int)
 
-    enum class AIDs(val aid: String, val security: Boolean = false, val realDevice: Boolean = false) {
-        AID_1("A0:00:00:08:82:00:01"),
-        AID_2("A0:00:00:08:82:00:02"),
+
+    enum class AIDs(val aid: String, val security: Boolean = false, val realDevice: Boolean = false, val haveTon: Boolean = true) {
         AID_3("A0:00:00:08:82:00:03", security = true),
+        AID_2("A0:00:00:08:82:00:02"),
         AID_4("A7:77:77:77:77:77:77", realDevice = true),
-        AID_5("63:98:96:00:FF:00:01"),
-        AID_6("70:6f:72:74:65:42:54:43")
+        AID_1("A0:00:00:08:82:00:01",haveTon = false),
+        AID_5("63:98:96:00:FF:00:01", haveTon = false),
+        AID_6("70:6f:72:74:65:42:54:43", haveTon = false)
     }
 
     enum class ALGORITHMS {

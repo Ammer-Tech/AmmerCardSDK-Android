@@ -3,9 +3,9 @@ package tech.ammer.sdk.card
 import android.app.Activity
 import android.nfc.TagLostException
 import android.util.Log
+import org.bouncycastle.asn1.edec.EdECObjectIdentifiers
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
-import org.bouncycastle.internal.asn1.edec.EdECObjectIdentifiers
 import org.bouncycastle.jce.ECNamedCurveTable
 import org.bouncycastle.jce.interfaces.ECPublicKey
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec
@@ -69,9 +69,7 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
     init {
         createKeys()
 
-        ICardController
-            .AIDs
-            .values()
+        ICardController.AIDs.entries
             .forEachIndexed { index, it ->
                 val aidHex = it.aid.split(":").toTypedArray()
                 aidsByte.add(index, ByteArray(aidHex.size))
@@ -188,9 +186,8 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
         return isVerify
     }
 
-
     private fun processCommand(commandName: String, command: APDUBuilder): ByteArray {
-        Log.d("Send Command:", "$commandName: ${command.build().toList()}")
+        Log.d("Send Command:", "$commandName: ${Hex.toHexString(command.data)}")
         if (selectedAID?.security == true && commandName != "Select") {
             createSecure()
             val cmdDecode = if (command.data.isEmpty()) command else encodeMsg(command)
@@ -405,7 +402,7 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
         return command.setData(buffer.array())
     }
 
-    override fun doNeedActivation(): Boolean {
+    override fun needActivation(): Boolean {
         val command = APDUBuilder.init().setINS(Instructions.INS_GET_STATE)
         val status = processCommand("isNotActivated:", command)
 
@@ -609,6 +606,10 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
             e.printStackTrace()
             return null
         }
+    }
+
+    override fun haveTon(): Boolean {
+        return selectedAID?.haveTon == true
     }
 
     override fun signDataByNonceED(data: String, gatewaySignature: String, publicKeyED: ByteArray): String? {

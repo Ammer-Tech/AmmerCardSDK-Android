@@ -2,13 +2,12 @@ package com.example.sample
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Intent
-import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import android.os.Bundle
-import android.provider.Settings
+import android.util.Log
 import android.widget.TextView
+import androidx.annotation.RequiresPermission
 import com.google.android.material.button.MaterialButton
 import org.bouncycastle.util.encoders.Hex
 import tech.ammer.sdk.card.CardControllerListener
@@ -22,12 +21,14 @@ import tech.ammer.sdk.card.apdu.CardErrors.SW_INS_NOT_SUPPORTED
 import tech.ammer.sdk.card.apdu.CardErrors.SW_WRONG_DATA
 import tech.ammer.sdk.card.apdu.CardErrors.SW_WRONG_P1P2
 import tech.ammer.sdk.card.apdu.CardErrors.TAG_WAL_LOST
+import tech.ammer.sdk.card.pax.PaxEventListener
+import tech.ammer.sdk.card.pax.PaxInterface
+import tech.ammer.sdk.card.pax.PaxWrapper
+import tech.ammer.sdk.card.pax.ReaderWrapper
 import java.math.BigDecimal
 import java.util.UUID
 
-class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallback {
-
-    private var isoDep: IsoDep? = null
+class MainActivity : Activity(), CardControllerListener, PaxEventListener {
     private var cardController: ICardController? = null
 
     private val pin = "123456"
@@ -44,38 +45,41 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
 
     private val resultMap = linkedMapOf<String, String?>()
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         title = findViewById(R.id.title)
 
         cardController = CardSDK.getController(this)
-
-        val nfc = NfcAdapter.getDefaultAdapter(this)
-        if (!nfc.isEnabled) {
-            startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
-        }
+        PaxWrapper.setEventListener(this)
 
         findViewById<MaterialButton>(R.id.start).setOnClickListener {
-            nfc?.enableReaderMode(this, this, NfcAdapter.FLAG_READER_NFC_A, null)
+            PaxWrapper.enable()
             title?.text = "Started"
         }
 
         findViewById<MaterialButton>(R.id.stop).setOnClickListener {
-            nfc?.disableReaderMode(this)
+            PaxWrapper.destroy()
             title?.text = "Stopped"
         }
     }
 
     private fun doWork() {
-        println("start")
-        val aid = cardController?.select()
+        println("start: ${Thread.currentThread()}")
 
-        val needActivation = cardController?.doNeedActivation()
+        runOnUiThread {
+            title?.text = "Processing..."
+        }
+
+        val aid = cardController?.select()
+        val needActivation = cardController?.needActivation()
         if (needActivation == true) {
             runOnUiThread {
                 title?.text = "Activation..."
             }
+
             cardController?.activate(pin)
         }
 
@@ -141,7 +145,8 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
     }
 
     override fun processCommand(byteArray: ByteArray): ByteArray? {
-        return isoDep?.transceive(byteArray)
+        Log.d("Wrap", "${Thread.currentThread()}")
+        return rWrapper?.processCommand(byteArray)
     }
 
     @SuppressLint("SetTextI18n")
@@ -162,23 +167,22 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
         }
     }
 
-    override fun onTagDiscovered(tag: Tag) {
-        isoDep = IsoDep.get(tag)
+    private var rWrapper: ReaderWrapper? = null
+
+    override fun cardAttached(iccWrapper: ReaderWrapper, paxInterfaceContact: PaxInterface) {
         try {
-            isoDep?.connect()
-            isoDep?.timeout = 25000
-
-            clearAllValue()
-            runOnUiThread {
-                title?.text = "Processing.."
-            }
-
+            this.rWrapper = iccWrapper
             doWork()
         } catch (e: Exception) {
             e.printStackTrace()
             onCardError(NFCCardController.convertError(e))
         }
     }
+
+    override fun cardDetached(paxInterfaceContact: PaxInterface?) {
+        rWrapper = null
+    }
+
 
     val CONNECT_TIMEOUT = 25000
 }
