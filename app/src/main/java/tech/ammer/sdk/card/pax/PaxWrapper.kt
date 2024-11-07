@@ -20,6 +20,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -68,7 +69,7 @@ object PaxWrapper {
     }
 
     fun enable() {
-        if (workerContact != null && workerContact!!.isActive || workerNFC != null && workerNFC!!.isActive) {
+        if (workerContact != null && workerContact!!.isActive || workerNFC != null && workerNFC!!.getCoroutineScope().isActive) {
             Log.d("PaxWrapper", "PaxWrapper already running")
             workerContact?.resume()
             workerNFC?.resume()
@@ -82,20 +83,14 @@ object PaxWrapper {
 
             PaxInterface.PAX_INTERFACE_CONTACT -> workerContact = WorkerContact()
             PaxInterface.PAX_INTERFACE_NFC -> workerNFC = WorkerNFC()
-            else -> {}
         }
         workerContact?.start()
         workerNFC?.start()
     }
 
-    fun stop() {
-//        workerContact?.terminate()
-//        workerNFC?.terminate()
-    }
-
     fun destroy() {
         workerContact?.coroutineContext?.cancel()
-        workerNFC?.coroutineContext?.cancel()
+        workerNFC?.getCoroutineScope()?.cancel()
 
         workerContact = null
         workerNFC = null
@@ -106,6 +101,10 @@ object PaxWrapper {
         workerContact?.terminate()
 
         paxInterfaceRef.set(null)
+    }
+
+    fun getScopeNfc(): CoroutineScope? {
+        return workerNFC?.getCoroutineScope()
     }
 
     internal class WorkerContact : CoroutineScope {
@@ -154,13 +153,14 @@ object PaxWrapper {
         }
     }
 
-    private class WorkerNFC : CoroutineScope {
-        override val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.IO
+    private class WorkerNFC {
+        private val myScope = CoroutineScope(Dispatchers.IO)
         private val terminated = AtomicBoolean(false)
+
         fun start() {
-            launch {
+            myScope.launch {
                 try {
-                    Log.d("PaxWrapper", "WorkerNFC started")
+                    Log.d("PaxWrapper", "WorkerNFC started, ${Thread.currentThread()}")
                     while (true) {
                         if (!terminated.get())
                             if (paxInterfaceRef.get() == null || paxInterfaceRef.get() == PaxInterface.PAX_INTERFACE_NFC) {
@@ -195,6 +195,8 @@ object PaxWrapper {
         fun resume() {
             terminated.set(false)
         }
+
+        fun getCoroutineScope() = myScope
     }
 
 //    companion object {

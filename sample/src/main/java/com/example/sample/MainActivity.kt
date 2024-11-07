@@ -7,9 +7,12 @@ import android.nfc.tech.IsoDep
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
-import androidx.annotation.RequiresPermission
 import com.google.android.material.button.MaterialButton
-import org.bouncycastle.util.encoders.Hex
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import tech.ammer.sdk.card.CardControllerListener
 import tech.ammer.sdk.card.CardSDK
 import tech.ammer.sdk.card.ICardController
@@ -83,9 +86,9 @@ class MainActivity : Activity(), CardControllerListener, PaxEventListener {
             cardController?.activate(pin)
         }
 
-        val availablePinCount = cardController?.countPinAttempts().toString()
         val uuid = cardController?.getCardUUID()
         val cardIssuer = cardController?.getIssuer().toString()
+        val availablePinCount = cardController?.countPinAttempts().toString()
         val series = cardController?.getSeries().toString()
         val pubKey = cardController?.getPublicKeyECDSA(pin)
         val pubKeyED = cardController?.getPublicKeyEDDSA(pin)
@@ -111,7 +114,7 @@ class MainActivity : Activity(), CardControllerListener, PaxEventListener {
             val signEC = cardController?.signDataEC(toSignEC, pin)
             val signED = cardController?.signDataED(toSignED, pubKeyED, pin)
             val signByNonceEC = cardController?.signDataByNonceEC(toSignEC, gatewaySignature)
-            val signByNonceED = cardController?.signDataByNonceED(toSignEDNonce, gatewaySignatureED, Hex.decode(pubKeyED))
+            val signByNonceED = cardController?.signDataByNonceED(toSignEDNonce, gatewaySignatureED)
 
             resultMap["EC_PrivateKey"] = pvkKey.toString()
             resultMap["ED_PublicKey"] = pubKeyED.toString()
@@ -131,6 +134,58 @@ class MainActivity : Activity(), CardControllerListener, PaxEventListener {
 
 
         updateTextView()
+    }
+
+    private suspend fun testThread() {
+        println("MyT0 ${Thread.currentThread()}")
+//        CoroutineScope(Dispatchers.IO).launch {
+//        PaxWrapper.getScopeNfc()?.launch {
+//            withContext(Dispatchers.Main) {
+//                title?.append("processing...")
+//            }
+        println("MyT1 ${Thread.currentThread()}")
+
+        cardController?.select()
+        val uuid = cardController?.getCardUUID()
+        println("u $uuid")
+
+        val cardIssuer = cardController?.getIssuer().toString()
+        println("c $cardIssuer")
+
+        val availablePinCount = cardController?.countPinAttempts().toString()
+        println("a $availablePinCount")
+
+//        CoroutineScope(Dispatchers.IO).async {
+//            println("Thread start")
+//            delay(3000)
+//        }.await()
+//        println("Thread finish")
+
+        val signByNonceED = cardController?.signDataByNonceED(toSignEDNonce, gatewaySignatureED)
+        println("s $signByNonceED")
+
+        println()
+        PaxWrapper.pause()
+        withContext(Dispatchers.IO) {
+            println("Thread start")
+            delay(6000)
+        }
+
+        PaxWrapper.enable()
+        cardController?.select()
+        val pubKeyED = cardController?.getPublicKeyEDDSA(pin)
+        println("a $pubKeyED")
+
+        withContext(Dispatchers.IO) {
+            println("Thread start")
+            delay(2000)
+        }
+
+        val dd = cardController?.signDataED(toSignED, pubKeyED, pin)
+        println("sPas $dd")
+        println("Thread finish")
+
+        PaxWrapper.pause()
     }
 
     private fun clearAllValue() {
@@ -169,15 +224,17 @@ class MainActivity : Activity(), CardControllerListener, PaxEventListener {
 
     private var rWrapper: ReaderWrapper? = null
 
-    override fun cardAttached(iccWrapper: ReaderWrapper, paxInterfaceContact: PaxInterface) {
+    override suspend fun cardAttached(iccWrapper: ReaderWrapper, paxInterfaceContact: PaxInterface) {
         try {
             this.rWrapper = iccWrapper
-            doWork()
+//            doWork()
+            testThread()
         } catch (e: Exception) {
             e.printStackTrace()
             onCardError(NFCCardController.convertError(e))
         }
     }
+
 
     override fun cardDetached(paxInterfaceContact: PaxInterface?) {
         rWrapper = null
