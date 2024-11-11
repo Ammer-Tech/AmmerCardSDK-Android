@@ -22,4 +22,5 @@ jobs:
       - name: Upload AAR
         uses: actions/upload-artifact@v1
         with:
-          path: build/designlibrary/build/outputs/aar/
+          name: ammer_card_sdk_1.0.0.aar
+          path: build/designlibrary/build/outputs/aar/ammer_card_sdk_1.0.0.aar
