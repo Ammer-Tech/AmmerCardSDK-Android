@@ -12,6 +12,7 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
 rootProject.name = "Card SDK"
-include ':app'
-include ':sample'
+include(":app")
+include(":sample")

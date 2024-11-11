@@ -24,7 +24,7 @@ interface ICardController {
 
     fun signDataByNonceEC(data: String, gatewaySignature: String): String?
 
-    fun signDataByNonceED(data: String, gatewaySignature: String, publicKeyED: ByteArray): String?
+    fun signDataByNonceED(data: String, gatewaySignature: String): String?
 
     fun select(): String
 

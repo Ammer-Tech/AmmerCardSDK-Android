@@ -34,11 +34,11 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.10.0'
-    implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+
+//    implementation files('libs/ammer_card_sdk_1.0.0.aar')
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.79'
     implementation project(':app')
-//    implementation files('/Users/dimak/AndroidStudioProjects/android-card-sdk/sample/libs/card-sdk-1.5.aar')
-    //    implementation project(path: ':app')
 }
