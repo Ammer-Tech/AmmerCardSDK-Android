@@ -50,7 +50,6 @@ android {
 val githubProperties = Properties()
 githubProperties.load(FileInputStream(rootProject.file("github.properties")))
 
-
 publishing {
     publications {
         create<MavenPublication>("gpr") {
@@ -58,7 +57,7 @@ publishing {
                 groupId = "tech.ammer.sdk.card"
                 artifactId = "android"
                 version = "1.0.0"
-                artifact("$buildDir/outputs/aar/android-release.aar")
+                artifact("$buildDir/outputs/aar/app-release.aar")
             }
         }
     }

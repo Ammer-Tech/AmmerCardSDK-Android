@@ -20,7 +20,7 @@ interface ICardController {
 
     fun signDataEC(payload: String, pin: String?): String?
 
-    fun signDataED(toSign: String, publicKeyEDDSA: String?, pin: String?): String?
+    fun signDataED(toSign: String, pin: String?): String?
 
     fun signDataByNonceEC(data: String, gatewaySignature: String): String?
 
@@ -28,7 +28,7 @@ interface ICardController {
 
     fun select(): String
 
-    fun doNeedActivation(): Boolean
+    fun needActivation(): Boolean
 
     fun activate(pin: String): Boolean
 

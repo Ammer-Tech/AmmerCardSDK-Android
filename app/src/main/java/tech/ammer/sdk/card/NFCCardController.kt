@@ -402,7 +402,7 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
         return command.setData(buffer.array())
     }
 
-    override fun doNeedActivation(): Boolean {
+    override fun needActivation(): Boolean {
         val command = APDUBuilder.init().setINS(Instructions.INS_GET_STATE)
         val status = processCommand("isNotActivated:", command)
 
@@ -448,7 +448,7 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
         }
     }
 
-    override fun signDataED(toSign: String, publicKeyEDDSA: String?, pin: String?): String? {
+    override fun signDataED(toSign: String, pin: String?): String? {
         try {
             if (isRealDevice()) {
                 val payload = Hex.decode(toSign)
@@ -457,7 +457,7 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
                 val response = processCommand("SignDataED", command)
                 val signedData = Hex.toHexString(response)
 
-                verifyED(payload, response, publicKeyEDDSA)
+//                verifyED(payload, response, publicKeyEDDSA)
                 return signedData
             } else {
                 val pinBytes = pinGetBytes(pin!!)
@@ -465,10 +465,6 @@ class NFCCardController(private val listener: CardControllerListener) : ICardCon
                 if (!isUnlock) {
                     unlock(pinBytes)
                 }
-
-//                val publicKey = Hex.decode(publicKeyEDDSA!!)
-//                val privateNonce = PointEncoder.privateNonce
-//                val publicNonce = PointEncoder.getPublicNonce(privateNonce)
 
                 val payload = Hex.decode(toSign)
                 val data = byteArrayOf(

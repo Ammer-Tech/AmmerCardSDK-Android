@@ -9,16 +9,16 @@ The Ammer Card SDK enables your Android application to use a Ammer smart-card as
 
 ### Examples
 
-# Dependency
+# Gradle
 
 ```Groovy
 implementation files('libs/card-sdk-#.#.#.aar')
 implementation 'org.bouncycastle:bcprov-jdk18on:1.79'
 ```
 
-# Start
+# Using the Library
 
-```
+```kotlin
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
@@ -26,7 +26,8 @@ class App : Application() {
     }
 }
 ```
-```
+
+```kotlin
 class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,13 +44,13 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
 
 ```
 
-# Action
+# Actions with the card
 
 ```kotlin
 
 fun onTagDiscovered(tag: Tag) {
-    ... 
-    
+    ...
+
     cardController?.select() //Required!!
 
     //About Card
@@ -67,23 +68,24 @@ fun onTagDiscovered(tag: Tag) {
 
     // Action
     val signEC = cardController?.signDataEC(dataEC, pin)
-    val signED = cardController?.signDataED(dataED, pubKeyED, pin)
+    val signED = cardController?.signDataED(dataED, pin)
     val signByNonceEC = cardController?.signDataByNonceEC(dataEC, gatewaySignature)
     val signByNonceED = cardController?.signDataByNonceED(dataED, gatewaySignatureED, Hex.decode(pubKeyED))
 
     cardController?.changePin(pin, newPin)
-    cardController?.blockGetPrivateKey(pin) //!!!! It is used only once
-
-    //for the android app Ammer Wallet
-    val pubKeyECF = cardController?.getPublicKeyECDSA(pin)
-    cardController?.setTransactionInfoForNFCPay(amount = BigDecimal("0.0005"), assetId = "AMR", orderID = UUID.randomUUID(), isEDKey = false)
-
-    val sign_EC_NFC = cardController?.signDataEC(toSignEC, null)
-    val sign_ED_NFC = cardController?.signDataED(toSignED, null, null)
-    
-    cardController?.statusTransaction(1)
+    cardController?.blockGetPrivateKey(pin) // The action can only be used once for a card
 }
+```
 
+## Actions for the Ammer Wallet app (android)
+```kotlin
+val pubKeyECF = cardController?.getPublicKeyECDSA(pin)
+cardController?.setTransactionInfoForNFCPay(amount = BigDecimal("0.0005"), assetId = "USDT", orderID = UUID.randomUUID(), isEDKey = false)
+
+val sign_EC_NFC = cardController?.signDataEC(toSignEC, null)
+val sign_ED_NFC = cardController?.signDataED(toSignED, null)
+
+cardController?.statusTransaction(1)
 ```
 
 ## [Sample](https://github.com/Ammer-Tech/AmmerCardSDK-Android/blob/master/sample/src/main/java/com/example/sample/MainActivity.kt)
