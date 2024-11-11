@@ -70,7 +70,7 @@ fun onTagDiscovered(tag: Tag) {
     val signEC = cardController?.signDataEC(dataEC, pin)
     val signED = cardController?.signDataED(dataED, pin)
     val signByNonceEC = cardController?.signDataByNonceEC(dataEC, gatewaySignature)
-    val signByNonceED = cardController?.signDataByNonceED(dataED, gatewaySignatureED, Hex.decode(pubKeyED))
+    val signByNonceED = cardController?.signDataByNonceED(dataED, gatewaySignatureED)
 
     cardController?.changePin(pin, newPin)
     cardController?.blockGetPrivateKey(pin) // The action can only be used once for a card
