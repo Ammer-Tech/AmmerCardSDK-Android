@@ -1,11 +1,12 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("maven-publish")
 }
 
-version = "1.0.0"
-group = "tech.ammer.sdk.card"
 
 android {
     compileSdk = 35
@@ -36,33 +37,41 @@ android {
         jvmTarget = "17"
     }
 
-    libraryVariants.all {
-        this.outputs.filterIsInstance<com.android.build.gradle.internal.api.BaseVariantOutputImpl>()
-            .forEach { output ->
-                if (output.outputFileName.endsWith(".aar")) {
-                    output.outputFileName = "ammer_card_sdk_${version}.aar"
-                }
-            }
-    }
-
-
-//    publishing {
-//        repositories {
-//            maven {
-//                name = "Ammer-Tech"
-//                url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
-//                credentials {
-//                    username = (project.findProperty("gpr.user") ?: System.getenv("USERNAME")).toString()
-//                    password = (project.findProperty("gpr.key") ?: System.getenv("TOKEN")).toString()
+//    libraryVariants.all {
+//        this.outputs.filterIsInstance<com.android.build.gradle.internal.api.BaseVariantOutputImpl>()
+//            .forEach { output ->
+//                if (output.outputFileName.endsWith(".aar")) {
+//                    output.outputFileName = "ammer_card_sdk_${version}.aar"
 //                }
 //            }
-//        }
-//        publications {
-//            gpr(MavenPublication) {
-//                from(components.java)
-//            }
-//        }
 //    }
+}
+
+val githubProperties = Properties()
+githubProperties.load(FileInputStream(rootProject.file("github.properties")))
+
+
+publishing {
+    publications {
+        create<MavenPublication>("gpr") {
+            run {
+                groupId = "tech.ammer.sdk.card"
+                artifactId = "android"
+                version = "1.0.0"
+                artifact("$buildDir/outputs/aar/android-release.aar")
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "Ammer-Tech"
+            url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
+            credentials {
+                username = githubProperties.getProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = githubProperties.getProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+    }
 }
 
 dependencies {
