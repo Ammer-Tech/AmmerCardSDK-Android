@@ -7,17 +7,13 @@ plugins {
     id("maven-publish")
 }
 
-
 android {
     compileSdk = 35
     namespace = "tech.ammer.sdk.card"
 
     defaultConfig {
         minSdk = 25
-        //noinspection EditedTargetSdkVersion
-        targetSdk = 35
-//        versionName = "1.0.0"
-//        versionCode = 1
+        lint.targetSdk = 35
     }
 
     buildTypes {
@@ -36,15 +32,6 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-
-//    libraryVariants.all {
-//        this.outputs.filterIsInstance<com.android.build.gradle.internal.api.BaseVariantOutputImpl>()
-//            .forEach { output ->
-//                if (output.outputFileName.endsWith(".aar")) {
-//                    output.outputFileName = "ammer_card_sdk_${version}.aar"
-//                }
-//            }
-//    }
 }
 
 val githubProperties = Properties()
@@ -55,9 +42,9 @@ publishing {
         create<MavenPublication>("gpr") {
             run {
                 groupId = "tech.ammer.sdk.card"
-                artifactId = "android"
-                version = "1.0.0"
-                artifact("$buildDir/outputs/aar/app-release.aar")
+                artifactId = "apdu"
+                version = "1.0.5"
+                artifact("${rootProject.layout.buildDirectory}/outputs/aar/app-release.aar")
             }
         }
     }
@@ -76,4 +63,12 @@ publishing {
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("org.bouncycastle:bcprov-jdk18on:1.79")
+}
+
+task("BuildAndPublish") {
+    group = "release"
+    dependsOn("build")
+    dependsOn("publishGprPublicationToAmmer-TechRepository")
+    tasks.findByName("publishGprPublicationToAmmer-TechRepository")
+        ?.mustRunAfter("build")
 }

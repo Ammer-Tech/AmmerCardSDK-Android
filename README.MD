@@ -33,11 +33,11 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
         super.onCreate(savedInstanceState)
         
         val cardController = CardSdk.getController(this)
-        ... enable NFS read mode
+        // ... enable NFS read mode
     }
     
     override fun processCommand(byteArray: ByteArray): ByteArray? {
-       // If not a standard NFC adapter (such as Pax or similar), implement your solution
+       // If there is no standard NFC adapter (such as Pax or similar), develop your own implementation
         return isoDep?.transceive(byteArray)
     }
 }
@@ -48,29 +48,25 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
 
 ```kotlin
 
-fun onTagDiscovered(tag: Tag) {
+ovveride fun onTagDiscovered(tag: Tag) {
     ...
 
     cardController?.select() //Required!!
-
-    //About Card
-    val availablePinCount = cardController?.countPinAttempts().toString()
+    
+    val countPinAttempts = cardController?.countPinAttempts().toString()
     val uuid = cardController?.getCardUUID()
     val cardIssuer = cardController?.getIssuer().toString()
     val series = cardController?.getSeries().toString()
 
-    val isRealDevice = cardController.isRealDevice()
-
-    // Private information about the card
+    val isRealDevice: Boolean = cardController.getAID().realDevice
+    
     val privateKeyEC = cardController?.getPrivateKey(pin)
     val publicKeyEC = cardController?.getPublicKeyECDSA(pin)
     val publicKeyED = cardController?.getPublicKeyEDDSA(pin)
 
     // Action
-    val signEC = cardController?.signDataEC(dataEC, pin)
-    val signED = cardController?.signDataED(dataED, pin)
-    val signByNonceEC = cardController?.signDataByNonceEC(dataEC, gatewaySignature)
-    val signByNonceED = cardController?.signDataByNonceED(dataED, gatewaySignatureED)
+    val sign = cardController?.signData(dataEC, pin)
+    val signWithGateway = cardController?.signDataByNonce(dataEC, gatewaySignature)
 
     cardController?.changePin(pin, newPin)
     cardController?.blockGetPrivateKey(pin) // The action can only be used once for a card
@@ -80,11 +76,9 @@ fun onTagDiscovered(tag: Tag) {
 ## Actions for the Ammer Wallet app (android)
 ```kotlin
 val pubKeyECF = cardController?.getPublicKeyECDSA(pin)
-cardController?.setTransactionInfoForNFCPay(amount = BigDecimal("0.0005"), assetId = "USDT", orderID = UUID.randomUUID(), isEDKey = false)
+cardController?.setTransactionInfoForNFCPay(amount = BigDecimal("20"), assetId = "USDT", orderID = UUID.randomUUID(), isEDKey = false)
 
-val sign_EC_NFC = cardController?.signDataEC(toSignEC, null)
-val sign_ED_NFC = cardController?.signDataED(toSignED, null)
-
+val sign_NFC = cardController?.signData(toSignEC, null)
 cardController?.statusTransaction(1)
 ```
 

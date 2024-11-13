@@ -133,6 +133,7 @@ object CardErrors {
     const val SIGN_NO_VERIFY: Short = 26759
     const val TAG_WAL_LOST: Short = 26761
     const val OTHER_ALGORITHM: Short = 26762
+    const val SW_CARD_BLOCK: Short = -27901
 }
 
 internal object State {
