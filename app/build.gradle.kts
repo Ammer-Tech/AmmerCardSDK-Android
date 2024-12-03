@@ -72,6 +72,5 @@ task("BuildAndPublish") {
     group = "release"
     dependsOn("build")
     dependsOn("publishGprPublicationToAmmer-TechRepository")
-    tasks.findByName("publishGprPublicationToAmmer-TechRepository")
-        ?.mustRunAfter("build")
+    tasks.findByName("publishGprPublicationToAmmer-TechRepository")?.mustRunAfter("build")
 }
