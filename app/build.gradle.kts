@@ -70,9 +70,9 @@ dependencies {
     implementation("org.bouncycastle:bcprov-jdk18on:1.79")
 }
 
-task("BuildAndPublish") {
-    group = "release"
-    dependsOn("build")
-    dependsOn("publishGprPublicationToAmmer-TechRepository")
-    tasks.findByName("publishGprPublicationToAmmer-TechRepository")?.mustRunAfter("build")
-}
+//task("BuildAndPublish") {
+//    group = "release"
+//    dependsOn("build")
+//    dependsOn("publishGprPublicationToAmmer-TechRepository")
+//    tasks.findByName("publishGprPublicationToAmmer-TechRepository")?.mustRunAfter("build")
+//}
