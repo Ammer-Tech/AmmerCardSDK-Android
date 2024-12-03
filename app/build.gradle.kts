@@ -38,37 +38,37 @@ android {
     }
 }
 
-//publishing {
-//    publications {
-//        create<MavenPublication>("gpr") {
-//            run {
-//                groupId = "tech.ammer.sdk.card"
-//                artifactId = "apdu"
-//                version = "1.0.11"
-//                artifact("${layout.buildDirectory.get()}/outputs/aar/app-release.aar")
-//            }
-//        }
-//    }
-//    repositories {
-//val githubProperties = Properties()
-//githubProperties.load(FileInputStream(rootProject.file("github.properties")))
-//        maven {
-//            name = "Ammer-Tech"
-//            url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
-//            credentials {
-//
-//                username = githubProperties.getProperty("user").toString()
-//                password = githubProperties.getProperty("key").toString()
-//            }
-//        }
-//    }
-//}
-//task("BuildAndPublish") {
-//    group = "release"
-//    dependsOn("build")
-//    dependsOn("publishGprPublicationToAmmer-TechRepository")
-//    tasks.findByName("publishGprPublicationToAmmer-TechRepository")?.mustRunAfter("build")
-//}
+publishing {
+    publications {
+        create<MavenPublication>("gpr") {
+            run {
+                groupId = "tech.ammer.sdk.card"
+                artifactId = "apdu"
+                version = "1.0.11"
+                artifact("${layout.buildDirectory.get()}/outputs/aar/app-release.aar")
+            }
+        }
+    }
+    repositories {
+        val githubProperties = Properties()
+        githubProperties.load(FileInputStream(rootProject.file("github.properties")))
+        maven {
+            name = "Ammer-Tech"
+            url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
+            credentials {
+
+                username = githubProperties.getProperty("user").toString()
+                password = githubProperties.getProperty("token").toString()
+            }
+        }
+    }
+}
+task("BuildAndPublish") {
+    group = "release"
+    dependsOn("build")
+    dependsOn("publishGprPublicationToAmmer-TechRepository")
+    tasks.findByName("publishGprPublicationToAmmer-TechRepository")?.mustRunAfter("build")
+}
 
 
 dependencies {
