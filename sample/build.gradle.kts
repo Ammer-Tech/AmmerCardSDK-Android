@@ -6,13 +6,13 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-val githubProperties = Properties()
-githubProperties.load(FileInputStream(rootProject.file("github.properties")))
-
 repositories {
     mavenCentral()
     google()
     maven {
+        val githubProperties = Properties()
+        githubProperties.load(FileInputStream(rootProject.file("github.properties")))
+
         name = "Ammer-Tech"
         url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
         credentials {
