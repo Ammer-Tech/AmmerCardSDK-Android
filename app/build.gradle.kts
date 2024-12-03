@@ -12,6 +12,9 @@ repositories {
     google()
 }
 
+//val githubProperties = Properties()
+//githubProperties.load(FileInputStream(rootProject.file("github.properties")))
+
 android {
     compileSdk = 35
     namespace = "tech.ammer.sdk.card"
@@ -38,30 +41,29 @@ android {
     }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("gpr") {
-            run {
-                groupId = "tech.ammer.sdk.card"
-                artifactId = "apdu"
-                version = "1.0.11"
-                artifact("${layout.buildDirectory.get()}/outputs/aar/app-release.aar")
-            }
-        }
-    }
-    repositories {
-        maven {
-            name = "Ammer-Tech"
-            url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
-            credentials {
-                val githubProperties = Properties()
-                githubProperties.load(FileInputStream(rootProject.file("github.properties")))
-                username = githubProperties.getProperty("user").toString()
-                password = githubProperties.getProperty("key").toString()
-            }
-        }
-    }
-}
+//publishing {
+//    publications {
+//        create<MavenPublication>("gpr") {
+//            run {
+//                groupId = "tech.ammer.sdk.card"
+//                artifactId = "apdu"
+//                version = "1.0.11"
+//                artifact("${layout.buildDirectory.get()}/outputs/aar/app-release.aar")
+//            }
+//        }
+//    }
+//    repositories {
+//        maven {
+//            name = "Ammer-Tech"
+//            url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
+//            credentials {
+//
+//                username = githubProperties.getProperty("user").toString()
+//                password = githubProperties.getProperty("key").toString()
+//            }
+//        }
+//    }
+//}
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
