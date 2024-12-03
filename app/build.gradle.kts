@@ -12,9 +12,6 @@ repositories {
     google()
 }
 
-//val githubProperties = Properties()
-//githubProperties.load(FileInputStream(rootProject.file("github.properties")))
-
 android {
     compileSdk = 35
     namespace = "tech.ammer.sdk.card"
@@ -53,6 +50,8 @@ android {
 //        }
 //    }
 //    repositories {
+//val githubProperties = Properties()
+//githubProperties.load(FileInputStream(rootProject.file("github.properties")))
 //        maven {
 //            name = "Ammer-Tech"
 //            url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
@@ -64,15 +63,16 @@ android {
 //        }
 //    }
 //}
-
-dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.79")
-}
-
 //task("BuildAndPublish") {
 //    group = "release"
 //    dependsOn("build")
 //    dependsOn("publishGprPublicationToAmmer-TechRepository")
 //    tasks.findByName("publishGprPublicationToAmmer-TechRepository")?.mustRunAfter("build")
 //}
+
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.79")
+}
+
