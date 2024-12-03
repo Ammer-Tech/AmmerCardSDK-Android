@@ -11,9 +11,9 @@ The Ammer Card SDK enables your Android application to use a Ammer smart-card as
 
 # Gradle
 [Download_Source](https://github.com/Ammer-Tech/publications/packages/2309780?tab=packages&q=aped)
-```Groovy
-implementation files('libs/###.aar')
-implementation 'org.bouncycastle:bcprov-jdk18on:1.79'
+```kotlin
+implementation(files("libs/apdu-###.aar"))
+implementation("org.bouncycastle:bcprov-jdk18on:1.79")
 ```
 or
 ```kotlin
@@ -32,8 +32,9 @@ repositories {
         }
     }
 }
-implementation("tech.ammer.sdk.card:apdu:#.#.#")
 
+implementation("tech.ammer.sdk.card:apdu:#.#.#")
+implementation("org.bouncycastle:bcprov-jdk18on:1.79")
 ```
 
 # Using the Library

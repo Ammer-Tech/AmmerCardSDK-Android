@@ -6,21 +6,21 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-repositories {
-    mavenCentral()
-    google()
-    maven {
-        val githubProperties = Properties()
-        githubProperties.load(FileInputStream(rootProject.file("github.properties")))
-
-        name = "Ammer-Tech"
-        url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
-        credentials {
-            username = githubProperties.getProperty("user") ?: System.getenv("user")
-            password = githubProperties.getProperty("key") ?: System.getenv("key")
-        }
-    }
-}
+//repositories {
+//    mavenCentral()
+//    google()
+//    maven {
+//        val githubProperties = Properties()
+//        githubProperties.load(FileInputStream(rootProject.file("github.properties")))
+//
+//        name = "Ammer-Tech"
+//        url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
+//        credentials {
+//            username = githubProperties.getProperty("user") ?: System.getenv("user")
+//            password = githubProperties.getProperty("key") ?: System.getenv("key")
+//        }
+//    }
+//}
 
 android {
     compileSdk = 35
@@ -50,8 +50,6 @@ android {
 
     namespace = "com.example.sample"
 }
-
-
 
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
