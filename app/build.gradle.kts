@@ -34,21 +34,20 @@ android {
     }
 }
 
-val githubProperties = Properties()
-githubProperties.load(FileInputStream(rootProject.file("github.properties")))
-
 publishing {
     publications {
         create<MavenPublication>("gpr") {
             run {
                 groupId = "tech.ammer.sdk.card"
                 artifactId = "apdu"
-                version = "1.0.7"
+                version = "1.0.8"
                 artifact("${layout.buildDirectory.get()}/outputs/aar/app-release.aar")
             }
         }
     }
     repositories {
+        val githubProperties = Properties()
+        githubProperties.load(FileInputStream(rootProject.file("github.properties")))
         maven {
             name = "Ammer-Tech"
             url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
