@@ -1,10 +1,12 @@
-import java.io.FileInputStream
-import java.util.Properties
-
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("maven-publish")
+}
+
+repositories {
+    mavenCentral()
+    google()
 }
 
 android {
@@ -23,7 +25,6 @@ android {
         }
     }
 
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -40,20 +41,18 @@ publishing {
             run {
                 groupId = "tech.ammer.sdk.card"
                 artifactId = "apdu"
-                version = "1.0.8"
+                version = "1.0.10"
                 artifact("${layout.buildDirectory.get()}/outputs/aar/app-release.aar")
             }
         }
     }
     repositories {
-        val githubProperties = Properties()
-        githubProperties.load(FileInputStream(rootProject.file("github.properties")))
         maven {
             name = "Ammer-Tech"
             url = uri("https://maven.pkg.github.com/Ammer-Tech/publications")
             credentials {
-                username = githubProperties.getProperty("gpr.user") ?: System.getenv("USERNAME")
-                password = githubProperties.getProperty("gpr.key") ?: System.getenv("TOKEN")
+                username = project.findProperty("user").toString()
+                password = project.findProperty("key").toString()
             }
         }
     }
