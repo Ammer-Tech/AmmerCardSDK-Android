@@ -473,7 +473,7 @@ open class NFCCardController(private val listener: CardControllerListener) : ICa
         try {
             val command = APDUBuilder.init().setINS(Instructions.INS_GET_PIN_RETRIES)
             val cmd = processCommand("GetIncorrectPinCount", command)
-            return cmd.lastOrNull()?.toInt() ?: 10
+            return 10 - (cmd.lastOrNull()?.toInt() ?: 10)
         } catch (e: Throwable) {
             e.printStackTrace()
         }

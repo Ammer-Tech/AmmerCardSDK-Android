@@ -3,6 +3,7 @@ package com.example.sample
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
@@ -21,6 +22,7 @@ import tech.ammer.sdk.card.apdu.CardErrors.SW_SECURITY_STATUS_NOT_SATISFIED
 import java.math.BigDecimal
 import java.util.UUID
 
+
 class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallback {
 
     private var isoDep: IsoDep? = null
@@ -33,11 +35,9 @@ class MainActivity : Activity(), CardControllerListener, NfcAdapter.ReaderCallba
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         title = findViewById(R.id.title)
 
         cardController = CardSDK.getController(this)
-
         val nfc = NfcAdapter.getDefaultAdapter(this)
         if (!nfc.isEnabled) {
             startActivity(Intent(Settings.ACTION_NFC_SETTINGS))

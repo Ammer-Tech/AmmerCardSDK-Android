@@ -43,8 +43,8 @@ publishing {
             run {
                 groupId = "tech.ammer.sdk.card"
                 artifactId = "apdu"
-                version = "1.0.5"
-                artifact("${rootProject.layout.buildDirectory}/outputs/aar/app-release.aar")
+                version = "1.0.6"
+                artifact("${buildDir}/outputs/aar/app-release.aar")
             }
         }
     }
